@@ -1290,8 +1290,9 @@ function renderNow() {
   let grid = "", wet = "", glow = "";
   // dry for the whole window: the empty grid shows a sun by day or a crescent moon by night, centred with as many
   // empty rows above as below, quiet and still
-  // no rain expected, but a small chance of a shower: soft columns as tall as the chance that hour (10% a dot, 100%
-  // the full height); only with not even that does the sun or moon appear
+  // no rain expected, but a chance of a shower: grey columns as tall as the chance that hour (10% a dot, 100% the full
+  // height), grey as in the 48 hours, since blue means rain in the forecast; only with not even a chance does the sun
+  // or moon appear
   const popAt = t => { const k = X.H.time.findIndex(s => T(s) > t) - 1; return k >= 0 ? X.H.precipitation_probability[k] ?? 0 : 0; };
   const chance = first < 0 ? times.map(t => { const p = popAt(t); return p >= 10 ? Math.max(1, Math.round(p / 100 * rows)) : 0; }) : [];
   if (chance.some(Boolean)) sub = `Dry · up to ${Math.max(...times.map(popAt))}% chance`;
@@ -1307,7 +1308,7 @@ function renderNow() {
     const period = (5.6 - Math.min(lit, 8) * .3).toFixed(2), stepT = period * .024;
     const start = 2.4 + ((i * 7919) % 97) / 97 * period;
     for (let k = 0; k < rows; k++) {
-      if (k >= lit) { if (k < (chance[i] || 0)) grid += `<circle cx="${cx}" cy="${cyOf(k)}" r="2.3" fill="var(--rain)" opacity=".38"/>`; else if (dry.has(`${i},${k}`)) glow += `<circle cx="${cx}" cy="${cyOf(k)}" r="2.5" fill="${X.isDay ? "#ffd88a" : "#e6e4ff"}"/>`; else grid += `<circle cx="${cx}" cy="${cyOf(k)}" r="2.1" fill="currentColor" opacity=".07"/>`; continue; }
+      if (k >= lit) { if (k < (chance[i] || 0)) grid += `<circle cx="${cx}" cy="${cyOf(k)}" r="2.3" fill="currentColor" opacity=".3"/>`; else if (dry.has(`${i},${k}`)) glow += `<circle cx="${cx}" cy="${cyOf(k)}" r="2.5" fill="${X.isDay ? "#ffd88a" : "#e6e4ff"}"/>`; else grid += `<circle cx="${cx}" cy="${cyOf(k)}" r="2.1" fill="currentColor" opacity=".07"/>`; continue; }
       const tone = (.95 - (k / Math.max(lit - 1, 1)) * .4 * (lit / rows)).toFixed(2);
       const fill = `--d:${(.25 + i * .035 + k * .09).toFixed(2)}s`;
       const top = k === lit - 1 && lit < rows, tw = sn[i] && (i * 7 + k * 3) % 11 === 0; // now and then a snow dot catches the light
@@ -1510,11 +1511,13 @@ function openRainLearn() {
     : wet ? `Today: about ${fmtP(look.mm)} ${PU()} of rain expected.` : "Today: no rain in the forecast.";
   $("#learnTitle").textContent = "Chance and amount";
   $("#learnBody").innerHTML = `${now ? `<p class="now">${esc(now)}</p>` : ""}
+    <h3>Blue: rain in the forecast</h3><p>The dots and the number show how much: one dot each for ${mm(.1)}, ${mm(.5)}, ${mm(1)}, ${mm(2)} and ${mm(4)} in an hour (${mm(.2)}, ${mm(1)}, ${mm(2)}, ${mm(5)} and ${mm(10)} in a day), with drops falling onto them, more often the harder it rains.</p>
+    <h3>Grey: only a chance</h3><p>The forecast itself stays dry there, but some of its runs bring rain; the grey number is that chance. Grey never rains.</p>
+    <h3>Why a high chance can still be grey</h3><p>The amount comes from the main forecast, the chance from dozens of slightly different runs of it. When the main forecast keeps it dry until seven o'clock but three in four runs already bring rain at six, the six o'clock hour shows a grey 75%: rain is quite possible, it's just not the best guess yet. The precipitation card above works the same way: its grey columns are the chance in a dry spell.</p>
     <h3>Chance of rain</h3><p>How likely it is that it rains here at all: at least ${mm(.1)} in that hour. It comes from running the forecast dozens of times, each with slightly different starting conditions. A 70% chance means about 7 in 10 of those runs bring rain to this spot. For a whole day, the highest hour counts.</p>
     <h3>What it doesn't mean</h3><p>A 30% chance doesn't mean rain over 30% of the area, or for 30% of the time. It's the chance that you get wet here, however briefly.</p>
     <h3>Amount</h3><p>How much water falls if it rains, in ${inch ? "inches" : "millimetres"}. ${inch ? "A tenth of an inch" : "1 mm"} is ${inch ? "about 2.5 litres" : "1 litre"} on every square metre. A day with less than ${mm(.5)} is barely wet; ${mm(10)} or more is a properly rainy day.</p>
-    <h3>Why you need both</h3><p>They answer different questions. A 70% chance with ${mm(.3)} is almost surely a little drizzle. A 20% chance with ${mm(8)} is probably dry, but if that shower does hit you, it pours.</p>
-    <h3>Dots and drops</h3><p>The blue dots and number show how much rain is in the forecast: one dot each for ${mm(.1)}, ${mm(.5)}, ${mm(1)}, ${mm(2)} and ${mm(4)} in an hour (${mm(.2)}, ${mm(1)}, ${mm(2)}, ${mm(5)} and ${mm(10)} in a day), with drops falling onto them, more often the harder it rains. Where the forecast has no rain but it might still come, the dots stay empty and the chance shows in grey.</p>`;
+    <h3>Why you need both</h3><p>They answer different questions. A 70% chance with ${mm(.3)} is almost surely a little drizzle. A 20% chance with ${mm(8)} is probably dry, but if that shower does hit you, it pours.</p>`;
   $("#dlgLearn").setAttribute("aria-label", "Chance of rain and amount"); $("#dlgLearn").showModal();
 }
 /* A sideways strip shows a row of dots under it instead of a scrollbar: a few lit dots travel along as it scrolls, like a

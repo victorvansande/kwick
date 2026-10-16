@@ -83,7 +83,9 @@ know (decisions, preferences, open choices), and push it along.**
   and the chance shows in grey (`.pc`). Blue always means "in the forecast"; a chance alone never rains. Why: the
   chance (ensemble) and the amount (main run) disagree at times, and a blue 75% over a dry hour read as rain. An
   hour's rain/snow icon needs ≥0.1 mm too, so icon, gauge and amount agree. Options A (grey chance dots, blue when
-  forecast) and C (a word per hour) were shown, not chosen.
+  forecast) and C (a word per hour) were shown, not chosen. The precipitation card follows the same rule: in a dry
+  spell its chance columns are grey, not faded blue. The (i) sheet opens with "Blue: rain in the forecast", "Grey:
+  only a chance" and "Why a high chance can still be grey".
 - Hours/days card: an (i) (in the 48 hours at the end of the scroll dots; in the 14 days beside "Full forecast", so a
   strip that fits without scrolling leaves no empty row) opens "Chance and amount" (the shared learn sheet, retitled):
   what the chance means (≥0.1 mm, ensemble share, not area or time), the amount (1 mm = 1 l/m²), why both, dots and drops.
