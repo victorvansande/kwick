@@ -471,7 +471,8 @@ html.warned .topbar::before{content:"";width:8px;height:8px;border-radius:50%;ba
 .hpop .htop{transform-box:fill-box;transform-origin:center;animation:land var(--p) ease-out var(--w2) infinite}
 .hpop span{font:500 12px/1 var(--f-label);color:var(--rain)}
 .hin.dry .hpop span{display:none} /* no hour with a chance: no empty row of labels under the dots */
-.hpop span small{font-size:11px;opacity:.8;margin-left:1px} /* the unit of an amount, shown where no chance of rain is given */
+.hpop span small{font-size:11px;opacity:.8;margin-left:1px} /* the unit of the amount */
+.hpop span.pc{color:var(--ink-2)} /* only a chance, no rain in the forecast: grey, so it never reads as rain */
 .hcurve{position:absolute;left:0;top:96px;pointer-events:none;overflow:visible}
 .hcurve text{font:400 15px var(--f-num);fill:var(--ink);text-anchor:middle;font-variant-numeric:tabular-nums}
 /* one card, two views: the next 48 hours or the next 14 days */

@@ -77,15 +77,16 @@ know (decisions, preferences, open choices), and push it along.**
 - Feels-like card: its corner accent shows which way it feels (blue-violet colder, deep red warmer, none when the same),
   clear from 1° and growing to 4° (this card's accent counts for more via `--acc-k`; warmer leans further since the
   card is coral). The other cards' accents are still decorative.
-- 48-hour strip: in hours with ≥0.1 mm forecast, drops fall through the empty chance-dots onto the stack (same
-  rule as the precipitation card, but a drop every 2–3.2 s and lit a little longer, `hdrip`); hours with only a
-  chance stay still. Drops need the amount, not a lit dot: with a chance under 10% they fall to the bottom. An hour's
-  rain/snow icon needs ≥0.1 mm too (a drizzle code with less shows as cloud), so icon, drops and amount agree. The 14-day strip does the same for days with ≥0.2 mm (rhythm from the
-  day's amount over its hours of rain). Days without a chance
-  (only mm): rings show the amount (one per 0.5, 1, 2, 5, 10 mm), never read as a chance; chosen option C.
+- 48-hour and 14-day rain gauges (option B, 2026-10-16): the five dots and the blue number show the AMOUNT, like the
+  precipitation card (one dot per 0.1/0.5/1/2/4 mm in an hour, 0.2/1/2/5/10 mm in a day), with drops falling onto the
+  stack (a drop every 2–3.2 s, `hdrip`). Where no rain is forecast but it might come, the dots stay empty and still
+  and the chance shows in grey (`.pc`). Blue always means "in the forecast"; a chance alone never rains. Why: the
+  chance (ensemble) and the amount (main run) disagree at times, and a blue 75% over a dry hour read as rain. An
+  hour's rain/snow icon needs ≥0.1 mm too, so icon, gauge and amount agree. Options A (grey chance dots, blue when
+  forecast) and C (a word per hour) were shown, not chosen.
 - Hours/days card: an (i) (in the 48 hours at the end of the scroll dots; in the 14 days beside "Full forecast", so a
   strip that fits without scrolling leaves no empty row) opens "Chance and amount" (the shared learn sheet, retitled):
-  what the chance means (≥0.1 mm, ensemble share, not area or time), the amount (1 mm = 1 l/m²), why both, dots/rings.
+  what the chance means (≥0.1 mm, ensemble share, not area or time), the amount (1 mm = 1 l/m²), why both, dots and drops.
 - Main card arc: the arc and its weather bands are clipped at the horizon line (round ends never dip below it).
 - Moon: soft terminator (light fades over the last few degrees of sun height), not a hard clip.
 - Saved for later, don't build unasked: a Vestaboard-style split-flap text effect (letters cycling until they land).

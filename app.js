@@ -1422,9 +1422,16 @@ function fogBands(foggy, colW) {
   }
   return out;
 }
+/* The rain gauge under each hour (and day): its five dots show the amount, in the same blue as the precipitation card,
+   one dot for each step reached (mm in an hour, or in a day); the blue number under it is that amount. Where no rain
+   is in the forecast but it might still rain, the dots stay empty and the chance shows in grey instead. So blue always
+   means "in the forecast", as on the precipitation card, and a chance never looks like rain. */
+const AMT_H = [.1, .5, 1, 2, 4], AMT_D = [.2, 1, 2, 5, 10];
+const rainLabel = (mm, min, v, pop) => mm >= min ? `<span>${fmtP(v)}<small>${PU()}</small></span>` : pop != null && pop >= 10 ? `<span class="pc">${pop}%</span>` : "<span>&nbsp;</span>";
 function renderHourly() {
   const { H, hi } = X, el = card("c-hourly");
   const n = Math.min(48, H.time.length - hi), colW = 58, temps = [], cols = [], foggy = [];
+  let labelled = false;
   for (let i = 0; i < n; i++) {
     const k = hi + i, t = T(H.time[k]), pop = nz(H.precipitation_probability[k]);
     // "Now" shows the conditions right now, exactly as the main card and the top bar do; later columns the hourly forecast
@@ -1435,18 +1442,19 @@ function renderHourly() {
     temps.push(i ? H.temperature_2m[k] : X.c.temperature_2m); foggy.push(kind === "fog");
     const isMid = H.time[k].endsWith("T00:00");
     const tl = i === 0 ? `<span class="htime now">Now</span>` : isMid ? `<span class="htime mid">${wd(H.time[k].slice(0, 10))}</span>` : `<span class="htime">${fmtH(t)}</span>`;
-    const lit = pop == null ? 0 : Math.round(pop / 20);
+    const mm = hmm, lit = AMT_H.filter(v => mm >= v).length;
     // in an hour with rain in the forecast (0.1 mm or more), drops fall through the empty dots onto the stack and its
     // top dot gives a small bounce as each lands, as in the precipitation card: more often the harder it rains, each
     // hour on its own rhythm. An hour with only a chance stays still.
-    const mm = hmm, rains = mm >= .1 && lit < 5; // with no dot lit (a chance under 10%), the drops fall to the bottom
+    const rains = mm >= .1 && lit < 5;
     // a drop every 3.2 s in light rain down to every 2 s in heavy rain; each dot stays lit a little longer than in the
     // precipitation card, as these columns are small
     const per = (3.38 - Math.min(8, Math.ceil(Math.log2(1 + mm * 4) * 1.6)) * .17).toFixed(2), stepT = per * .06, t0 = .8 + ((i * 7919) % 97) / 97 * per;
     let pd = ""; for (let q = 0; q < 5; q++) pd += `<circle${rains && q === lit - 1 ? ` class="htop" style="--p:${per}s;--w2:${(t0 + (5 - lit) * stepT).toFixed(2)}s"` : ""} cx="4" cy="${26 - q * 5.5}" r="${q < lit ? 2.2 : 1.5}" fill="${q < lit ? "var(--rain)" : "currentColor"}" opacity="${q < lit ? 1 : .18}"/>`;
     if (rains) for (let j = 0; j < 5 - lit; j++) pd += `<circle class="drip" cx="4" cy="${26 - (4 - j) * 5.5}" r="2.2" fill="var(--rain)" style="--p:${per}s;--w:${(t0 + j * stepT).toFixed(2)}s"/>`;
+    if (mm >= .1 || (pop ?? 0) >= 10) labelled = true;
     cols.push(`<div class="hcol">${tl}${icon(kind, day)}<span></span>
-      <div class="hpop"><svg viewBox="0 0 8 30" aria-hidden="true">${pd}</svg><span>${pop != null && pop >= 10 ? pop + "%" : "&nbsp;"}</span></div></div>`);
+      <div class="hpop"><svg viewBox="0 0 8 30" aria-hidden="true">${pd}</svg>${rainLabel(mm, .1, H.precipitation[k], pop)}</div></div>`);
   }
   const valid = temps.filter(v => v != null), mn = Math.min(...valid), mx = Math.max(...valid), span = (mx - mn) || 1;
   const pts = temps.map((v, i) => [i * colW + colW / 2, 24 + (1 - ((v ?? mn) - mn) / span) * 44]);
@@ -1487,7 +1495,7 @@ function renderHourly() {
       <p class="hv-h">${R(mn)}° to ${R(mx)}°</p>
       <p class="hv-d" id="hDaysSub">${dayHint()}</p></header>
       <div class="hseg" role="tablist" aria-label="Forecast range"><button role="tab" data-v="h" aria-selected="${view === "h"}">48 h</button><button role="tab" data-v="d" aria-selected="${view === "d"}">14 days</button></div></div>
-    <div class="hfade hv-h"><div class="hscroll hv-h" tabindex="0" aria-label="Hourly forecast, scroll sideways"><div class="hin${cols.some(c => c.includes("%</span>")) ? "" : " dry"}" style="grid-template-columns:repeat(${n},${colW}px);width:${W}px">${track}${fogBands(foggy, colW)}${cols.join("")}${svg}</div></div></div>
+    <div class="hfade hv-h"><div class="hscroll hv-h" tabindex="0" aria-label="Hourly forecast, scroll sideways"><div class="hin${labelled ? "" : " dry"}" style="grid-template-columns:repeat(${n},${colW}px);width:${W}px">${track}${fogBands(foggy, colW)}${cols.join("")}${svg}</div></div></div>
     <div class="hfade hv-d"><div class="hscroll hv-d" id="hDays" tabindex="0" aria-label="Daily forecast, scroll sideways">${view === "d" ? dayStrip() : ""}</div></div>
     <div class="hdots"><div class="dscroll hv-h" aria-hidden="true"></div><div class="dscroll hv-d" aria-hidden="true"></div><button class="info-i hv-h rain-i" aria-label="What the chance of rain and the amount mean"><svg viewBox="0 0 12 12"><path d="M6 5.4v3.6"/><path d="M6 3h.01"/></svg></button></div>
     <div class="hv-d hfoot"><span class="hfoot-l"><button class="hall-main" id="hAll">Full forecast<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 6h7M6.5 3l3 3-3 3"/></svg></button><button class="info-i rain-i" aria-label="What the chance of rain and the amount mean"><svg viewBox="0 0 12 12"><path d="M6 5.4v3.6"/><path d="M6 3h.01"/></svg></button></span><button class="hall" id="hSure">How sure?<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M4.5 2.5L8 6l-3.5 3.5"/></svg></button></div>`; // the hidden view is built when it is first opened
@@ -1506,7 +1514,7 @@ function openRainLearn() {
     <h3>What it doesn't mean</h3><p>A 30% chance doesn't mean rain over 30% of the area, or for 30% of the time. It's the chance that you get wet here, however briefly.</p>
     <h3>Amount</h3><p>How much water falls if it rains, in ${inch ? "inches" : "millimetres"}. ${inch ? "A tenth of an inch" : "1 mm"} is ${inch ? "about 2.5 litres" : "1 litre"} on every square metre. A day with less than ${mm(.5)} is barely wet; ${mm(10)} or more is a properly rainy day.</p>
     <h3>Why you need both</h3><p>They answer different questions. A 70% chance with ${mm(.3)} is almost surely a little drizzle. A 20% chance with ${mm(8)} is probably dry, but if that shower does hit you, it pours.</p>
-    <h3>Dots, rings and drops</h3><p>Filled dots show the chance, one for every 20%. Further ahead the forecast gives no chance, only an amount, so rings show that instead: one each for ${mm(.5)}, ${mm(1)}, ${mm(2)}, ${mm(5)} and ${mm(10)}. Drops fall through the dots when rain is in the forecast, more often the harder it rains.</p>`;
+    <h3>Dots and drops</h3><p>The blue dots and number show how much rain is in the forecast: one dot each for ${mm(.1)}, ${mm(.5)}, ${mm(1)}, ${mm(2)} and ${mm(4)} in an hour (${mm(.2)}, ${mm(1)}, ${mm(2)}, ${mm(5)} and ${mm(10)} in a day), with drops falling onto them, more often the harder it rains. Where the forecast has no rain but it might still come, the dots stay empty and the chance shows in grey.</p>`;
   $("#dlgLearn").setAttribute("aria-label", "Chance of rain and amount"); $("#dlgLearn").showModal();
 }
 /* A sideways strip shows a row of dots under it instead of a scrollbar: a few lit dots travel along as it scrolls, like a
@@ -1543,29 +1551,26 @@ function dayStrip() {
   const cols = idx.map((i, n) => {
     const look = dayLook(i), key = Dy.time[i], [label, kind] = wmo(look.code);
     const mn = Dy.temperature_2m_min[i], mx = Dy.temperature_2m_max[i], pop = look.pop;
-    // past the days that come with a chance of rain (about 11), the meter would read 0%: it gives way to the amount
-    const amt = pop == null && toMm(look.mm) >= .2 ? `${fmtP(look.mm)}<small>${PU()}</small>` : "";
-    // where no chance is given, the dots show the amount instead, as rings so they never read as a chance: one ring for
-    // each of 0.5, 1, 2, 5 and 10 mm reached
-    const dmm = toMm(look.mm ?? 0), ring = pop == null, lit = ring ? [.5, 1, 2, 5, 10].filter(v => dmm >= v).length : Math.round(pop / 20);
+    // the gauge shows the day's amount (rainLabel above); a day without it but with a chance shows that chance in grey
+    const dmm = toMm(look.mm ?? 0), lit = AMT_D.filter(v => dmm >= v).length;
     // a day with rain in the forecast (0.2 mm or more): drops fall through the empty dots as in the 48 hours, their
     // rhythm set by how hard it rains while it rains (the day's amount over its hours of rain)
     const rains = dmm >= .2 && lit < 5;
     const rate = dmm / Math.max(1, Dy.precipitation_hours?.[i] ?? 1);
     const per = (3.38 - Math.min(8, Math.ceil(Math.log2(1 + rate * 4) * 1.6)) * .17).toFixed(2), stepT = per * .06, t0 = .8 + ((n * 7919) % 97) / 97 * per; // as in the 48 hours
-    let pd = ""; for (let q = 0; q < 5; q++) pd += `<circle${rains && q === lit - 1 ? ` class="htop" style="--p:${per}s;--w2:${(t0 + (5 - lit) * stepT).toFixed(2)}s"` : ""} cx="4" cy="${26 - q * 5.5}" ${q < lit ? (ring ? `r="1.8" fill="none" stroke="var(--rain)" stroke-width="1"` : `r="2.2" fill="var(--rain)"`) : `r="1.5" fill="currentColor" opacity=".18"`}/>`;
+    let pd = ""; for (let q = 0; q < 5; q++) pd += `<circle${rains && q === lit - 1 ? ` class="htop" style="--p:${per}s;--w2:${(t0 + (5 - lit) * stepT).toFixed(2)}s"` : ""} cx="4" cy="${26 - q * 5.5}" ${q < lit ? `r="2.2" fill="var(--rain)"` : `r="1.5" fill="currentColor" opacity=".18"`}/>`;
     if (rains) for (let j = 0; j < 5 - lit; j++) pd += `<circle class="drip" cx="4" cy="${26 - (4 - j) * 5.5}" r="2.2" fill="var(--rain)" style="--p:${per}s;--w:${(t0 + j * stepT).toFixed(2)}s"/>`;
     const now = n === 0 && c.temperature_2m != null ? `<span class="nd" style="bottom:${P(clamp(c.temperature_2m, lo, hi))}%"></span>` : "";
     // an uncertain day: the bar reaches out by how much the models disagree, fading at both ends, so it reads as
     // "somewhere around here" rather than an exact range
     const uc = U && U[key], fuzz = uc && uc.conf !== "high" ? (uc.fz ?? uc.deg) * (S.temp === "f" ? 1.8 : 1) / 2 : 0;
     const top = clamp(+P(mx + fuzz), 0, 100), bot = clamp(+P(mn - fuzz), 0, 100), fz = fuzz ? clamp((top - +P(mx) + +P(mn) - bot) / 2 / Math.max(top - bot, 1) * 100 + 8, 8, 45) : 0;
-    return `<button class="dcol${uc && uc.conf === "low" ? " unsure" : ""}" data-n="${n}" aria-label="${n === 0 ? "Today" : wd(key) + " " + dm_(key)}: ${esc(label)}, ${R(mn)} to ${R(mx)} degrees${pop != null ? `, ${pop}% chance of rain` : amt ? `, about ${fmtP(look.mm)} ${PU()} of rain` : ""}${uc && uc.conf !== "high" ? ", models disagree" : ""}. Open details.">
+    return `<button class="dcol${uc && uc.conf === "low" ? " unsure" : ""}" data-n="${n}" aria-label="${n === 0 ? "Today" : wd(key) + " " + dm_(key)}: ${esc(label)}, ${R(mn)} to ${R(mx)} degrees${dmm >= .2 ? `, about ${fmtP(look.mm)} ${PU()} of rain` : ""}${pop != null ? `, ${pop}% chance of rain` : ""}${uc && uc.conf !== "high" ? ", models disagree" : ""}. Open details.">
       <span class="htime${n === 0 ? " now" : ""}">${n === 0 ? "Today" : wd(key)}</span>${icon(kind, true)}
       <em class="dhi hiT" style="--tc:${tc(mx)}">${degMid(R(mx))}</em>
       <span class="dbar"><span class="dfill${fuzz ? " fuzzy" : ""}" style="top:${(100 - top).toFixed(1)}%;bottom:${bot.toFixed(1)}%;--lo:${tc(mn)};--hi:${tc(mx)};--fz:${fz.toFixed(0)}%"></span>${now}</span>
       <em class="dlo">${degMid(R(mn))}</em>
-      <div class="hpop"><svg viewBox="0 0 8 30" aria-hidden="true">${pd}</svg><span>${pop != null && pop >= 10 ? pop + "%" : amt || "&nbsp;"}</span></div></button>`;
+      <div class="hpop"><svg viewBox="0 0 8 30" aria-hidden="true">${pd}</svg>${rainLabel(dmm, .2, look.mm, pop)}</div></button>`;
   });
   return `<div class="dstrip" style="grid-template-columns:repeat(${cols.length},minmax(58px,1fr));min-width:${cols.length * 58}px">${cols.join("")}</div>`;
 }
