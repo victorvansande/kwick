@@ -2993,25 +2993,29 @@ $("#warn").onclick = () => {
 };
 
 /* ---------------- connection ---------------- */
-// like a native app: without a connection the last forecast stays up, with a pill saying how old it is
+// like a native app: without a connection the last forecast stays up, with a pill saying since when
 let netFail = false;
-const ago = t => {
-  const m = (Date.now() - t) / 6e4;
-  return m < 1 ? "just now" : m < 60 ? `${Math.floor(m)}\u00a0min ago` : m < 24 * 60 ? `${Math.floor(m / 60)}\u00a0h ago` : updLabel(t);
-};
 const updLabel = t => (Date.now() - t > 20 * 36e5 ? wd(new Date(t + OFF * 1000).toISOString().slice(0, 10)) + " " : "") + fmtT(new Date(t));
 function renderNet() {
   const offline = !navigator.onLine, on = (offline || netFail) && !!D, pill = $("#netPill");
   pill.classList.toggle("on", on); pill.setAttribute("aria-hidden", String(!on)); pill.tabIndex = on ? 0 : -1;
   document.body.classList.toggle("net-off", on);
   if (on) {
-    $("#netT").textContent = offline ? "Offline" : "Can't reach the forecast";
-    $("#netS").textContent = `Updated ${ago(fetchedAt)}`;
-    pill.setAttribute("aria-label", `${offline ? "Offline" : "Can't reach the forecast"}. Updated ${ago(fetchedAt)}. Tap to try again.`);
+    // one short phrase, so it fits beside Retry on the smallest phone: "Couldn't update since 13:30" (with the day
+    // when it's older than 20 hours)
+    $("#netT").textContent = offline ? "Offline" : "Couldn't update";
+    $("#netS").textContent = `since ${updLabel(fetchedAt)}`;
+    pill.setAttribute("aria-label", `${offline ? "Offline" : "Couldn't update"} since ${updLabel(fetchedAt)}, forecast from then. Retry.`);
   }
   $("#c-radar").classList.toggle("offline", offline);
 }
-$("#netPill").onclick = () => load(place);
+// Retry fetches the forecast again at once; if that fails too while the phone says it's online, the page itself
+// reloads (a home-screen app left in the background for long can keep a stuck connection that only a reload clears)
+$("#netPill").onclick = async () => {
+  if (loading) return;
+  await load(place);
+  if (netFail && navigator.onLine) location.reload();
+};
 addEventListener("online", () => { netFail = false; renderNet(); if (place) load(place, { quiet: true }); });
 addEventListener("offline", renderNet);
 

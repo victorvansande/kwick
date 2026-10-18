@@ -915,13 +915,17 @@ dialog::backdrop{background:rgba(6,4,20,.4);-webkit-backdrop-filter:blur(8px);ba
 .toast{position:fixed;left:50%;bottom:calc(76px + var(--dock-b));transform:translateX(-50%);z-index:1100;padding:11px 18px;border-radius:999px;font-weight:600;font-size:13px;max-width:calc(100% - 32px);text-align:center;color:#fff;transition:bottom .35s cubic-bezier(.2,.8,.2,1)}
 body.net-off .toast{bottom:calc(122px + var(--dock-b))}
 /* offline: the last forecast stays up and this pill says how old it is (tap to try again) */
-.netpill{position:fixed;left:50%;bottom:calc(74px + var(--dock-b));z-index:1050;display:flex;align-items:center;gap:8px;padding:10px 16px 10px 14px;border-radius:999px;font-size:13px;color:#fff;white-space:nowrap;max-width:calc(100% - 32px);
+.netpill{position:fixed;left:50%;bottom:calc(74px + var(--dock-b));z-index:1050;display:flex;align-items:center;gap:8px;padding:10px 14px 10px 12px;border-radius:999px;font-size:13px;color:#fff;white-space:nowrap;max-width:calc(100% - 32px);
   opacity:0;transform:translate(-50%,14px) scale(.96);pointer-events:none;transition:opacity .35s,transform .45s cubic-bezier(.2,.8,.2,1)}
 .netpill.on{opacity:1;transform:translate(-50%,0);pointer-events:auto}
 .netpill i{width:7px;height:7px;border-radius:50%;background:#ffcf5c;box-shadow:0 0 0 3px rgba(255,207,92,.2);flex:none}
 .netpill b{font-weight:600}
 .netpill span{color:rgba(255,255,255,.62);overflow:hidden;text-overflow:ellipsis}
 .netpill.busy i{animation:netpulse .9s ease-in-out infinite}
+/* the way out, right in the pill: Retry, set off by a hairline; its arrow turns while it tries */
+.net-r{display:flex;align-items:center;gap:4px;margin-left:2px;padding-left:10px;box-shadow:inset 1px 0 0 rgba(255,255,255,.22);font-style:normal;font-weight:600;flex:none}
+.net-r svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.netpill.busy .net-r svg{animation:spin 1s linear infinite}
 @keyframes netpulse{50%{opacity:.25;transform:scale(.7)}}
 .roff{position:absolute;z-index:500;left:50%;top:50%;transform:translate(-50%,-50%);margin:0;padding:10px 16px;border-radius:999px;font-size:13px;font-weight:600;white-space:nowrap;display:none}
 #c-radar.offline .roff{display:block}
