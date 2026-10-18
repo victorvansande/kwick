@@ -107,7 +107,7 @@ const pt16 = d => PTS[Math.round(d / 22.5) % 16];
 /* ---------------- weather codes ---------------- */
 const WMO = {0:["Clear","clear"],1:["Mostly clear","clear"],2:["Partly cloudy","partly"],3:["Overcast","cloudy"],45:["Fog","fog"],48:["Freezing fog","fog"],
   51:["Light drizzle","drizzle"],53:["Drizzle","drizzle"],55:["Heavy drizzle","drizzle"],56:["Freezing drizzle","sleet"],57:["Freezing drizzle","sleet"],
-  61:["Light rain","rain"],63:["Rain","rain"],65:["Heavy rain","rain"],66:["Freezing rain","sleet"],67:["Freezing rain","sleet"],
+  61:["Light rain","rain"],63:["Moderate rain","rain"],65:["Heavy rain","rain"],66:["Freezing rain","sleet"],67:["Freezing rain","sleet"],
   71:["Light snow","snow"],73:["Snow","snow"],75:["Heavy snow","snow"],77:["Snow grains","snow"],80:["Light showers","rain"],81:["Showers","rain"],82:["Violent showers","rain"],
   85:["Snow showers","snow"],86:["Heavy snow showers","snow"],95:["Thunderstorm","thunder"],96:["Thunder and hail","thunder"],99:["Thunder and hail","thunder"]};
 const wmo = c => WMO[c] || ["–", "cloudy"];
@@ -551,7 +551,12 @@ function derive() {
   const c = D.current, H = D.hourly, Dy = D.daily;
   let hi = H.time.indexOf(c.time.slice(0, 13) + ":00"); if (hi < 0) hi = 0;
   let di = Dy.time.indexOf(c.time.slice(0, 10)); if (di < 0) di = 0;
-  X = { c, H, Dy, hi, di, lat: D.latitude, lon: D.longitude, todayKey: Dy.time[di], kind: wmo(c.weather_code)[1], isDay: !!c.is_day };
+  // Open-Meteo gives an hour's rain, snowfall, chance of rain and gusts for the hour BEFORE its time ("13:00" = 12–13).
+  // Everything here reads an hour as the one that starts at its time, so those four move one step back, onto the hour
+  // they describe; temperature, sky and the rest are the moment itself and stay. (The quarter hours: see nowcast.)
+  const lead = a => a ? [...a.slice(1), null] : a;
+  const Hs = { ...H, precipitation: lead(H.precipitation), precipitation_probability: lead(H.precipitation_probability), snowfall: lead(H.snowfall), wind_gusts_10m: lead(H.wind_gusts_10m) };
+  X = { c, H: Hs, Dy, hi, di, lat: D.latitude, lon: D.longitude, todayKey: Dy.time[di], kind: wmo(c.weather_code)[1], isDay: !!c.is_day };
   // one answer to "is it raining now": the quarter-hour timeline (as on the precipitation card and the arc), so the
   // main card, the top bar and the hours' "Now" never say clear while the card below says rain, or the other way round
   X.nc = nowcast();
@@ -561,17 +566,22 @@ function derive() {
 /* A rain code without any rain to back it shows the sky instead, by its cloud cover, in the cloud card's own steps
    (clear to 12%, few clouds to 37%, scattered to 62%, then overcast), so it never says overcast under a clear sky. */
 const dryCode = cloud => cloud == null ? 3 : cloud <= 12 ? 0 : cloud <= 37 ? 1 : cloud <= 62 ? 2 : 3;
+/* Drizzle and rain are named by how much falls (mm in an hour), with the precipitation card's own steps: light under
+   2.5, moderate to 7.6, heavy above. So an icon, a label and the card never call the same rain three different things
+   (the models' own drizzle codes could make a day with 8 mm "drizzle"). Showers, freezing rain and snow keep theirs. */
+const normRain = (code, mmh) => [51, 53, 55, 61, 63, 65].includes(code) && mmh != null && mmh > 0 ? (mmh < 2.5 ? 61 : mmh < 7.6 ? 63 : 65) : code;
 /* Which quarter hour of the timeline holds moment t (-1 outside the next six hours). */
 const quarterAt = t => X.nc ? X.nc.times.findIndex(x => x.valueOf() <= t && t < x.valueOf() + 9e5) : -1;
 /* The weather at moment t, given the hourly forecast's code for it. Within the next six hours whether anything falls
    comes from the quarter-hour timeline: a dry code with rain in that quarter becomes rain (or snow) as heavy as it is,
    and a rain code with none becomes the sky its cloud cover gives (dryCode), as an hour's icon does without an
    amount. q: the quarter (-1 outside the timeline), wet: whether anything falls in it. Thunder stays thunder. */
-function weatherAt(t, code, cloud) {
-  const q = quarterAt(t); if (q < 0) return { code, q, wet: null };
+function weatherAt(t, code, cloud, mmh) {
+  const q = quarterAt(t); if (q < 0) return { code: normRain(code, mmh), q, wet: null };
   const nc = X.nc, r = nc.rate[q], wet = r >= nc.thr, snowy = (nc.snow[q] ?? 0) > 0, falls = code >= 51 && code < 95;
   if (wet && !falls && code < 95) code = snowy ? (r < 1 ? 71 : r < 4 ? 73 : 75) : r < 2.5 ? 61 : r < 7.6 ? 63 : 65; // the precipitation card's Light/Moderate/Heavy
   else if (!wet && falls) code = dryCode(cloud);
+  else if (wet) code = normRain(code, r);
   return { code, q, wet };
 }
 
@@ -583,7 +593,7 @@ function renderSummary() {
   const PRECIP = ["rain", "drizzle", "snow", "sleet", "thunder"];
   const mmh = k => toMm(H.precipitation[k] ?? 0);
   // within the next six hours the quarter-hour timeline decides (the same one the precipitation card shows); later on, the hourly
-  const nc = nowcast(), ncWet = k => { const t0 = T(H.time[k]).valueOf(), t1 = t0 + 36e5; if (!nc.times.length || t1 > nc.end) return null; return nc.times.some((t, i) => t >= t0 - 9e5 && t < t1 && nc.rate[i] >= nc.thr); };
+  const nc = nowcast(), ncWet = k => { const t0 = T(H.time[k]).valueOf(), t1 = t0 + 36e5; if (!nc.times.length || t1 > nc.end) return null; return nc.times.some((t, i) => t >= t0 && t < t1 && nc.rate[i] >= nc.thr); };
   const wet = k => ncWet(k) ?? (mmh(k) >= .2 || ((H.precipitation_probability[k] ?? 0) >= 60 && PRECIP.includes(kindAt(k))));
   const at = k => fmtTD(T(H.time[k]));
   // what falls during a wet spell, named after its wettest hour
@@ -592,8 +602,9 @@ function renderSummary() {
     const kind = kindAt(peak), r = mmh(peak), any = [];
     for (let k = a; k < b; k++) any.push(kindAt(k));
     if (any.includes("thunder")) return "thunderstorms";
-    const base = kind === "snow" || any.includes("snow") ? "snow" : kind === "sleet" ? "sleet" : kind === "drizzle" && r < 1 ? "drizzle" : "rain";
-    return base === "drizzle" || base === "sleet" ? base : (r < .6 ? "light " : r >= 4 ? "heavy " : "") + base;
+    // named by the amount with the precipitation card's steps (normRain), never "drizzle" for a wet spell
+    const base = kind === "snow" || any.includes("snow") ? "snow" : kind === "sleet" ? "sleet" : "rain";
+    return base === "sleet" ? base : (r < 2.5 ? "light " : r >= 7.6 ? "heavy " : "") + base;
   };
   const cap = s => s[0].toUpperCase() + s.slice(1);
   let first;
@@ -1188,7 +1199,7 @@ function arcWeather(a0, a1) {
     else segs.push({ type, t0: from, t1: to, f0: (from - A) / (B - A), f1: (to - A) / (B - A), h: new Date(from) });
   };
   H.time.forEach((s, k) => {
-    const t = T(s).valueOf(), from = Math.max(t - 18e5, A), to = Math.min(t + 18e5, B);
+    const t = T(s).valueOf(), from = Math.max(t, A), to = Math.min(t + 36e5, B); // the hour that starts at its time
     if (to <= from) return;
     const kd = wmo(H.weather_code[k])[1], snowK = kd === "snow" || kd === "sleet", cloud = (H.cloud_cover[k] ?? 0) >= 75 ? "cloud" : "";
     const hourFall = snowK || ["rain", "drizzle", "thunder"].includes(kd) || toMm(H.precipitation[k] ?? 0) >= .1;
@@ -1236,7 +1247,7 @@ function scrubSun(f) {
   $("#arcDone").setAttribute("d", arcPath(0, f));
   $("#arcLeft").setAttribute("d", arcPath(f, 1));
   const dot = $("#sunDot"); dot.setAttribute("transform", `translate(${px} ${py})`); dot.setAttribute("opacity", "1");
-  const h = hourAt(t), wa = weatherAt(t.valueOf(), h.code, X.H.cloud_cover[h.k]), [label, kind] = wmo(wa.code), v = R(h.temp), box = $("#heroTemp");
+  const h = hourAt(t), wa = weatherAt(t.valueOf(), h.code, X.H.cloud_cover[h.k], toMm(X.H.precipitation[h.k] ?? 0)), [label, kind] = wmo(wa.code), v = R(h.temp), box = $("#heroTemp");
   // the weather on the card follows the hour too: snow, rain, fog, cloud, stars or sun (and agrees with the band under
   // the dot and the precipitation card, weatherAt)
   const H = X.H, k = h.k, w = { kind, code: wa.code, mm: wa.q < 0 ? toMm(H.precipitation[k] ?? 0) : wa.wet ? toMm(X.nc.vals[wa.q]) * 4 : 0, cloud: H.cloud_cover[k], windKmh: toMs(H.wind_speed_10m[k] ?? 0) * 3.6, gustKmh: toMs(H.wind_gusts_10m[k] ?? 0) * 3.6, dir: H.wind_direction_10m[k] ?? 0, isDay: !!H.is_day[k] };
@@ -1296,7 +1307,8 @@ function nowcast() {
   let times = [], vals = [], snow = []; // snow: fresh snow per quarter-hour (cm, or inches), from the same forecast
   const hs = k => (X.H.snowfall ? X.H.snowfall[k] ?? 0 : 0) / 4;
   // skip quarter-hours that already passed (a kept forecast can be hours old); with too few left the hourly takes over
-  if (M && M.precipitation && M.precipitation.some(v => v != null)) M.time.forEach((s, i) => { const t = T(s); if (t >= Date.now() - 9e5) { times.push(t); vals.push(M.precipitation[i] ?? 0); snow.push(M.snowfall ? M.snowfall[i] ?? 0 : 0); } });
+  // a quarter hour's amount is for the quarter BEFORE its time ("20:15" = 20:00–20:15): each is kept at its start
+  if (M && M.precipitation && M.precipitation.some(v => v != null)) M.time.forEach((s, i) => { const t = new Date(T(s).valueOf() - 9e5); if (t >= Date.now() - 9e5) { times.push(t); vals.push(M.precipitation[i] ?? 0); snow.push(M.snowfall ? M.snowfall[i] ?? 0 : 0); } });
   if (times.length < 8) { times = []; vals = []; snow = []; for (let i = 0; i < 6; i++) { const t = X.H.time[X.hi + i]; if (!t) break; for (let q = 0; q < 4; q++) { times.push(new Date(T(t).valueOf() + q * 9e5)); vals.push((X.H.precipitation[X.hi + i] ?? 0) / 4); snow.push(hs(X.hi + i)); } } }
   // always six hours (24 quarter-hours): when the quarter-hour forecast runs out early (an older kept copy), the hourly
   // forecast fills the rest, so the grid keeps the same number of columns and the same dot size
@@ -1513,7 +1525,7 @@ function renderHourly() {
     // "Now" takes its rain from the quarter-hour timeline, like its icon (X.c, weatherAt) and the precipitation card,
     // as an hourly rate; later hours keep the hourly forecast's amount
     const q0 = i ? -1 : quarterAt(Date.now()), now0 = q0 >= 0 && X.nc.rate[q0] >= X.nc.thr ? X.nc.vals[q0] * 4 : q0 >= 0 ? 0 : null;
-    const hmm = now0 != null ? toMm(now0) : toMm(H.precipitation[k] ?? 0), wc = i ? (H.weather_code[k] >= 51 && H.weather_code[k] < 95 && hmm < .1 ? dryCode(H.cloud_cover[k]) : H.weather_code[k]) : X.c.weather_code;
+    const hmm = now0 != null ? toMm(now0) : toMm(H.precipitation[k] ?? 0), wc = i ? (H.weather_code[k] >= 51 && H.weather_code[k] < 95 && hmm < .1 ? dryCode(H.cloud_cover[k]) : H.weather_code[k] < 51 && hmm >= .1 ? ((H.snowfall?.[k] ?? 0) > 0 ? 71 : normRain(61, hmm)) : normRain(H.weather_code[k], hmm)) : X.c.weather_code;
     const day = i ? !!H.is_day[k] : X.isDay, [, kind] = wmo(wc);
     temps.push(i ? H.temperature_2m[k] : X.c.temperature_2m); foggy.push(kind === "fog");
     const isMid = H.time[k].endsWith("T00:00");
@@ -1836,7 +1848,7 @@ function dayLook(i) {
   if (codes.length) {
     const wet = codes.filter(c => c >= 51);
     if (codes.some(c => c >= 95)) code = Math.max(...codes);
-    else if (toMm(mm) >= .2) code = wet.length ? Math.max(...wet) : Math.max(code ?? 61, 51);
+    else if (toMm(mm) >= .2) code = normRain(wet.length ? Math.max(...wet) : Math.max(code ?? 61, 51), Math.max(...ks.map(k => toMm(H.precipitation[k] ?? 0)))); // named by its wettest hour
     else {
       const dayKs = ks.filter(k => { const h = +H.time[k].slice(11, 13); return h >= 8 && h < 20; }), use = dayKs.length ? dayKs : ks, n = {};
       for (const k of use) { const c = H.weather_code[k]; if (c != null) { const s = c >= 51 ? dryCode(H.cloud_cover[k]) : c; n[s] = (n[s] || 0) + 1; } } // a dry day's stray drizzle hour counts as its sky (dryCode)
@@ -1908,7 +1920,9 @@ function renderUV() {
   paint(el, FAM[L[2]]);
   setHaze("uv", uv >= 6 ? clamp(4 + (uv - 6) * 2, 4, 14) : 0);
   let peak = 0, peakT = null, from = null, to = null;
+  // only hours still to come: in the evening a peak earlier today is no news
   for (let k = hi; k < H.time.length && H.time[k].startsWith(X.todayKey); k++) {
+    if (T(H.time[k]) < Date.now()) continue;
     const v = H.uv_index[k] ?? 0; if (v > peak) { peak = v; peakT = T(H.time[k]); }
     if (v >= 3) { if (!from) from = T(H.time[k]); to = T(H.time[k]); }
   }
@@ -1916,7 +1930,7 @@ function renderUV() {
   for (let v = 0; v <= 12; v += 3) { const th = PI * (1 - v / 12); ticks += `<line x1="${100 + 86 * cos(th)}" y1="${100 - 86 * sin(th)}" x2="${100 + (v % 3 ? 90 : 94) * cos(th)}" y2="${100 - (v % 3 ? 90 : 94) * sin(th)}" stroke="currentColor" stroke-opacity="${v % 3 ? .38 : .75}" stroke-linecap="round"/>`; }
   const th = PI * (1 - clamp(uv, 0, 12) / 12), mx_ = 100 + 80 * cos(th), my_ = 100 - 80 * sin(th);
   const tri = `<line x1="${100 + 78 * cos(th)}" y1="${100 - 78 * sin(th)}" x2="${100 + 89 * cos(th)}" y2="${100 - 89 * sin(th)}" stroke="var(--signal)" stroke-width="6.5" stroke-linecap="round"/>`; // the capsule needle
-  const sub = uv < 3 && peak >= 3 && from ? `Protection ${fmtT(from)}–${fmtT(new Date(to.valueOf() + 36e5))}` : peak > uv ? `Peak ${peak.toFixed(0)} at ${fmtT(peakT)}` : `Today's max ${R(Dy.uv_index_max[di])}`;
+  const sub = uv < 3 && peak >= 3 && from ? `Protection ${fmtT(from)}–${fmtT(new Date(to.valueOf() + 36e5))}` : Math.round(peak) > Math.round(uv) ? `Peak ${Math.round(peak)} at ${fmtT(peakT)}` : `Today's max ${R(Dy.uv_index_max[di])}`; // a peak only when it's higher than now, as shown
   el.innerHTML = `${head("UV index", L[1])}
     <div class="gauge"><svg viewBox="0 0 200 108" aria-hidden="true">${ticks}
       <path d="M20 100 A80 80 0 0 1 180 100" fill="none" stroke="currentColor" stroke-opacity=".3" stroke-width="2"/>
@@ -1975,7 +1989,8 @@ function renderAir() {
   const v = a.european_aqi, li = EAQ.findIndex(l => v < l[0]), L = EAQ[li];
   paint(el, FAM[L[2]]);
   let peak = v, peakT = null; const HA = AQ.hourly;
-  if (HA) { const start = HA.time.findIndex(t => T(t) >= new Date(Date.now() - 36e5)); for (let k = Math.max(0, start); k < Math.min(HA.time.length, start + 24); k++) if ((HA.european_aqi[k] ?? 0) > peak) { peak = HA.european_aqi[k]; peakT = T(HA.time[k]); } }
+  // looking ahead only: a worse hour earlier today is past
+  if (HA) { const start = HA.time.findIndex(t => T(t) > new Date()); for (let k = Math.max(0, start); k < Math.min(HA.time.length, start + 24); k++) if ((HA.european_aqi[k] ?? 0) > peak) { peak = HA.european_aqi[k]; peakT = T(HA.time[k]); } }
   const rows = [["PM2.5", a.pm2_5, 15], ["PM10", a.pm10, 45], ["O₃", a.ozone, 100], ["NO₂", a.nitrogen_dioxide, 25], ["SO₂", a.sulphur_dioxide, 40]].filter(r => r[1] != null);
   // the scale as a row of 24 dots, five index points each (0–120), lit up to the value now
   const scale = Array.from({ length: 24 }, (_, k) => `<i class="${k * 5 < v ? "on" : ""}"></i>`).join("");
@@ -1997,7 +2012,7 @@ function renderAir() {
       <span class="air-v" role="img" aria-label="European AQI ${Math.round(v)}, ${L[1].toLowerCase()}">${dm(String(Math.round(v)))}</span>
       <span class="mono">European AQI</span>
       <div class="scale" aria-hidden="true">${scale}<span class="tri" style="left:calc(2.5px + (100% - 5px) * ${clamp(v / 115, 0, 1).toFixed(3)})"></span></div>
-      <div class="air-foot"><span class="mono">${peakT ? `Worst around ${fmtT(peakT)}` : "Steady over the next 24 h"}</span>
+      <div class="air-foot"><span class="mono">${peakT ? `Worst around ${fmtTD(peakT)}` : "Steady over the next 24 h"}</span>
       <button class="air-more mono" id="airMore" aria-expanded="${open}" aria-controls="airPol">Pollutants<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9.5l6 6 6-6"/></svg></button></div></div>
     <div class="pol-wrap" id="airPol"><div><div class="pol tile">${rows.map(([n, val, lim]) => `<div class="pol-r"><span class="mono">${n}</span><div class="mbar"><div class="fill" style="width:${clamp(val / (lim * 2) * 100, 2, 100)}%"></div><span class="lim" style="left:50%"></span></div><span class="v">${val < 10 ? val.toFixed(1) : Math.round(val)}<small>µg/m³</small></span></div>`).join("")}
       <span class="mono lim-key" title="WHO air quality guideline: the most it should be on average over 24 hours (ozone: over 8 hours)"><i aria-hidden="true"></i>WHO recommended maximum</span>${a.us_aqi != null ? `<span class="mono pol-us">US AQI ${Math.round(a.us_aqi)}</span>` : ""}</div></div></div></div>`;
@@ -2371,8 +2386,8 @@ function renderVis() {
   if (km != null && next.length) {
     const fog = km >= 1 && next.find(([v]) => v < 1), clearing = km < 1 && next.find(([v]) => v >= 2);
     const lo = next.reduce((m, x) => x[0] < m[0] ? x : m), hiV = next.reduce((m, x) => x[0] > m[0] ? x : m);
-    say = fog ? `Fog likely by ${fmtT(fog[1])}` : clearing ? `Clearing by ${fmtT(clearing[1])}`
-      : lo[0] < km * .6 ? `Down to ${nice(lo[0])} by ${fmtT(lo[1])}` : hiV[0] > km * 1.6 && km < 20 ? `Up to ${nice(hiV[0])} by ${fmtT(hiV[1])}` : "Steady for the next 12 h";
+    say = fog ? `Fog likely by ${fmtTD(fog[1])}` : clearing ? `Clearing by ${fmtTD(clearing[1])}`
+      : lo[0] < km * .6 ? `Down to ${nice(lo[0])} by ${fmtTD(lo[1])}` : hiV[0] > km * 1.6 && km < 20 ? `Up to ${nice(hiV[0])} by ${fmtTD(hiV[1])}` : "Steady for the next 12 h";
   }
   el.innerHTML = `<span class="vis-sky" aria-hidden="true" style="--clear:${Math.round(clear * 100)}%;--skyA:${(.35 + .4 * clear).toFixed(2)}"></span>
     <span class="vis-fog" aria-hidden="true" style="--fogA:${((1 - clear) * .75).toFixed(2)}"></span>
@@ -2384,12 +2399,14 @@ function renderVis() {
 
 /* ---------------- rain totals ---------------- */
 function renderRain() {
-  const { Dy, di, H, hi } = X, el = card("c-rain");
-  const today = Dy.precipitation_sum[di], pop = nz(Dy.precipitation_probability_max[di]);
+  const { di, H, hi } = X, el = card("c-rain");
+  // the rest of today, as the 14 days' "Today" counts it (dayLook): the amount still to come and its chance, said so
+  // in the subtitle, so the two never show different numbers for "today"
+  const look = dayLook(di), today = look.mm, pop = look.pop;
   const next = []; for (let k = hi; k < hi + 24 && k < H.time.length; k++) next.push(H.precipitation[k] ?? 0);
   const sum24 = next.reduce((a, b) => a + b, 0), mx = Math.max(...next.map(toMm), 1);
   const bars = next.map((v, i) => { const h = toMm(v) / mx * 36; return `<rect x="${i * 10 + 2}" y="${40 - Math.max(h, 1.5)}" width="6" height="${Math.max(h, 1.5)}" rx="3" fill="currentColor" opacity="${v > 0 ? 1 : .24}"/>`; }).join("");
-  el.innerHTML = `${head("Rain today", pop != null ? `${pop}% chance` : "–")}
+  el.innerHTML = `${head("Rain today", pop != null ? `Rest of day · ${pop}%` : "Rest of day")}
     <div class="num big">${fmtP(today)}<small>${PU()}</small></div>
     <div class="spark"><svg viewBox="0 0 240 42" preserveAspectRatio="none" aria-hidden="true">${bars}</svg></div>
     <div class="spark-ax">${[0, 12, 23].map(k => H.time[hi + k] ? `<span class="tm">${k ? fmtT(T(H.time[hi + k])) : "Now"}</span>` : "<span></span>").join("")}</div>

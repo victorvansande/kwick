@@ -123,6 +123,14 @@ know (decisions, preferences, open choices), and push it along.**
 - Clock: 24-hour by default for everyone (2026-10-18); 12-hour only when picked in settings (`clockChosen`), so an
   old region-based "12" saved with other settings is reset. The precipitation axis marks whole hours under their own
   column ("13:00" / "1pm").
+- Data timing (2026-10-18, the data review): Open-Meteo gives an hour's rain, snowfall, chance of rain and gusts for
+  the hour BEFORE its time, and a quarter hour's amount for the quarter before. `derive()` moves those four hourly
+  values one step back (`X.H` reads "the hour that starts here"; `D.hourly` stays raw) and `nowcast()` keeps each
+  quarter at its start, so the 48 hours, the precipitation card, the arc and the summary agree (rain shown an hour
+  late before). Weather codes and temperatures are the moment itself. Rain and drizzle are named by the amount with
+  the precipitation card's steps (`normRain`: light < 2.5 mm/h, moderate to 7.6, heavy above); an hour with an
+  amount never shows a dry icon. "Rain today" is the rest of the day ("Rest of day · 80%"), as the 14 days' Today.
+  UV "Peak" and air "Worst around" only look ahead; times on another day say so (`fmtTD`).
 - One answer per moment (2026-10-18): `weatherAt(t, code, cloud)` decides the weather at any moment in the next six
   hours from the quarter-hour timeline (`X.nc`, `quarterAt`); "now" (`X.c`), the label and sky while dragging the
   arc, the arc's bands (cut at quarter hours) and the hours' "Now" gauge all use it. A rain code without rain shows
