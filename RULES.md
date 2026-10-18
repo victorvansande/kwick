@@ -34,8 +34,15 @@ What Kwick feels like, as a touchstone for anything new: does it look like it wa
      bar and the "Now" column of the hours card;
    - rain in the next six hours is `nowcast()`, everywhere: the precipitation card, the summary sentence, the
      main card's "Rain from / Dry from" and the rain on its arc;
+   - the weather at any moment in those six hours (the word under "Now" or under the dragged sun, the icon, the
+     sky's animation, the arc's band under the dot) takes whether it rains from that same timeline (`weatherAt`), so
+     one moment never gets two answers;
    - sunrise and sunset are Open-Meteo's daily values; twilight, golden hour and solar noon are computed with the
      same sun formulas everywhere.
+1a. **Rain needs rain behind it.** A rain or snow word, icon, falling drop or blue dot appears only where an amount
+   is forecast (0.1 mm in an hour, 0.2 mm in a day); without one the sky shows by its cloud cover (`dryCode`). A
+   chance alone is grey and still. Blue always means "in the forecast", on every card. (This kept coming back: a
+   drizzle icon with 0.0 mm, a blue 75% over a dry hour, "Clear" on a rain band.)
 2. **What you see is what is compared.** Logic that compares or labels values (same/colder, the dots on a scale)
    works from the same rounded numbers the card shows, never from hidden decimals.
 3. **Say which day.** A time from another day than today carries the day ("Sunrise tomorrow").
@@ -78,6 +85,12 @@ What Kwick feels like, as a touchstone for anything new: does it look like it wa
     main card's arc), a red pill brings it back: "Back to now" for a time, "Today" for a date. It takes the card's
     top-right corner and replaces the view switcher there while it shows; it never sits beside or below the
     switcher. Each view shows only its own way back.
+12c. **Same job, same behaviour.** When cards do the same thing (switch views, fold open, go back to now, point with
+    a needle, show a grid of dots, let drops fall), they use the same piece and the same motion. A fix to one is
+    checked on all the others in the same change, not found later on the next card.
+12d. **What can be tapped looks tappable.** A notice that offers a way out shows it as a button with a verb (Retry,
+    Today, Back to now), never as a plain message you happen to be able to tap. A hint about a hidden gesture is a
+    short line of text, shown once, not an animation.
 13a. **Corners**: card 30 px (`--r-card`), surfaces inside cards 16 px, pills fully round; 1–3 px only for hairline
     marks and needles.
 13b. **Gaps inside cards** follow a rhythm of 4: 2, 4, 8, 12, 16, 20 px.
@@ -110,12 +123,16 @@ What Kwick feels like, as a touchstone for anything new: does it look like it wa
 19. Day and night are mirrors: day = light tints with dark ink, night = ink-black with a touch of the card's colour and light ink; no glow or shine
     on cards in either. Sky cards (main card, sun, moon) show the real sky colour. The one glow allowed is a warning's: an orange or red warning in force puts a soft halo in its colour round the dock (it is a signal, not decoration).
 20. Shapes follow nature: the sun's arc is a sine of time, the moon has its real phase, rain falls where it is
-    forecast.
+    forecast. **Motion follows the data too**: rain and snow lean with the wind, clouds and lines drift at its pace,
+    drops fall as often as the rain is heavy, and nothing moves that the data doesn't say.
 20a. **Sheets are cards too.** The windows that open on top (14 days, How sure, About, Settings, Places, warnings,
     the humidity explainer) follow every rule here: the same data as the cards, the same words, day and night as
     mirrors (light glass with dark ink by day, the board's night glass at night), drawn with the sheet tokens
     `--ink`, `--ink-2`, `--ink-3`, `--wash` and `--wash-2` rather than fixed white, and no blur on the sheet itself.
     "Today" in a sheet says whether it means the whole day or the rest of it.
+20b. **Axes are true.** Every mark sits exactly on the value it names: month letters span their real number of days,
+    a needle sits on its dot, a temperature over a point is centred on its digits (14b), and labels never overlap.
+    Equal spacing is only right when the values really are equal.
 
 ## Rendering and speed
 
@@ -127,7 +144,9 @@ What Kwick feels like, as a touchstone for anything new: does it look like it wa
     and flash half-drawn or stale cards. Small, throttled exceptions (the heat shimmer on the arc and the number) are fine.
 21b. **Keep the graphics chip's memory light.** No blur on layers that move (the cards' light is soft gradients, not a
     blurred layer); big moving layers stop altogether off screen so Chrome can let them go; and a card is repainted as
-    it comes into view, because Chrome short of memory can drop a layer's pixels and leave a card empty.
+    it comes into view, because Chrome short of memory can drop a layer's pixels and leave a card empty. A card also
+    clips its own moving layers to its rounded shape, since Chrome and iOS can let a moved layer paint outside the
+    plain corner clip.
 22. Animations pause when their card is off screen or the tab is hidden, and respect "reduce motion".
 22a. **Everything that folds open, folds smoothly, all the same way.** A panel, list or menu that opens inside a card
     or sheet (the air card's pollutants, the folded pollen strip, a day in the 14-day sheet) never jumps from hidden to
@@ -144,7 +163,8 @@ What Kwick feels like, as a touchstone for anything new: does it look like it wa
 ## Way of working
 
 25. Every change is checked in the preview (at phone width too, down to 320 px, and by day and at night), including
-    the sheets that show the same thing as the changed card; then committed. It is pushed to
+    the sheets that show the same thing as the changed card. Layouts that change with the width are checked on a
+    wide screen too (about 1000 and 1300 px) and in the wall view, where most layout bugs turned up; then committed. It is pushed to
     `main` when the owner says so, and the check workflow runs the lint
     and the browser test in Chromium and WebKit before publishing.
 26. Design choices are shown as options first; the person who owns the app picks.
