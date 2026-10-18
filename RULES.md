@@ -74,6 +74,10 @@ What Kwick feels like, as a touchstone for anything new: does it look like it wa
 12a. **Scrolling down the page never gets caught in a card.** Up and down on a mouse wheel or trackpad always
     scrolls the page; sliders and timelines move with a sideways scroll (or Shift), dragging or the arrow keys. On a
     touch screen one finger scrolls the page past the map; two fingers move and pinch it.
+12b. **One way back, in one place.** When a card is moved away from now (dragging along the sun's day, the year, the
+    main card's arc), a red pill brings it back: "Back to now" for a time, "Today" for a date. It takes the card's
+    top-right corner and replaces the view switcher there while it shows; it never sits beside or below the
+    switcher. Each view shows only its own way back.
 13a. **Corners**: card 30 px (`--r-card`), surfaces inside cards 16 px, pills fully round; 1–3 px only for hairline
     marks and needles.
 13b. **Gaps inside cards** follow a rhythm of 4: 2, 4, 8, 12, 16, 20 px.

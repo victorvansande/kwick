@@ -190,10 +190,11 @@ dialog:focus-visible,.sheet:focus-visible{outline:none} /* opening a sheet focus
 /* the sun card has two views, switched like the hours card: today (day) and the daylight through the year (year) */
 .a-sun[data-view="year"] .sun-day,.a-sun:not([data-view="year"]) .sun-year{display:none}
 .a-sun .sun-day{display:flex;flex-direction:column;flex:1}
-.sun-year{position:relative}
 .sun-year > .ch{display:none} /* its heading shows in the card's own header */
-.sun-year .hero-now{top:2px;right:0}
-.a-sun:has(#sunNow:not([hidden])) .sseg{visibility:hidden} /* "Back to now" takes the corner while scrubbing */
+/* away from now, the red way back takes the view switcher's corner, in both views: "Back to now" in the day,
+   "Today" in the year (rule 12b) */
+.a-sun:not([data-view="year"]):has(#sunNow:not([hidden])) .sseg,.a-sun[data-view="year"]:has(#yrNow:not([hidden])) .sseg{visibility:hidden}
+.a-sun[data-view="year"] #sunNow{display:none} /* each view shows only its own way back */
 .kv5 b .u,.tile b .u{font:500 12px var(--f-label);letter-spacing:0;color:var(--ink-2)} /* units small after the number: h, min, s, AM/PM */
 .yr-read{font-size:30px;font-weight:300;letter-spacing:-.02em;line-height:1.1;margin-top:2px}
 .yr-sub{margin:4px 0 12px;font-size:13px;color:var(--ink-2)}
