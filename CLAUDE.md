@@ -131,6 +131,10 @@ know (decisions, preferences, open choices), and push it along.**
   the precipitation card's steps (`normRain`: light < 2.5 mm/h, moderate to 7.6, heavy above); an hour with an
   amount never shows a dry icon. "Rain today" is the rest of the day ("Rest of day · 80%"), as the 14 days' Today.
   UV "Peak" and air "Worst around" only look ahead; times on another day say so (`fmtTD`).
+- Clock changes (decided 2026-10-18: leave it): Open-Meteo writes every time with the offset of the moment you ask,
+  so in the week before a clock change the days after it run 23:00–23:00 (01:00–01:00 in spring) for what the app
+  counts itself (day split by the text date, the midnight marker, "tomorrow" near midnight). Moments and sun times
+  are right; it fixes itself once the clocks have changed. Don't fix unasked.
 - One answer per moment (2026-10-18): `weatherAt(t, code, cloud)` decides the weather at any moment in the next six
   hours from the quarter-hour timeline (`X.nc`, `quarterAt`); "now" (`X.c`), the label and sky while dragging the
   arc, the arc's bands (cut at quarter hours) and the hours' "Now" gauge all use it. A rain code without rain shows
