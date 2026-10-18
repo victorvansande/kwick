@@ -119,7 +119,7 @@ What Kwick feels like, as a touchstone for anything new: does it look like it wa
 ## Colour and look
 
 17. Every colour of a card comes from `palette.js` or the `:root` tokens; no new hard-coded colours in components.
-18. Raspberry (`--signal`) marks "now" and needles, and the one main action; nothing decorative.
+18. Raspberry (`--signal`) marks "now" and needles, the one main action, and the chosen forecast model in settings (a raspberry outline on a light raspberry wash); nothing decorative.
 19. Day and night are mirrors: day = light tints with dark ink, night = ink-black with a touch of the card's colour and light ink; no glow or shine
     on cards in either. Sky cards (main card, sun, moon) show the real sky colour. The one glow allowed is a warning's: an orange or red warning in force puts a soft halo in its colour round the dock (it is a signal, not decoration).
 20. Shapes follow nature: the sun's arc is a sine of time, the moon has its real phase, rain falls where it is
