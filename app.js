@@ -1472,7 +1472,10 @@ function renderHourly() {
     // "Now" shows the conditions right now, exactly as the main card and the top bar do; later columns the hourly forecast
     // an hour's rain or snow icon needs an amount to back it (0.1 mm or more): a drizzle code with less is shown as cloud,
     // so the icon, the drops and the amount always agree ("Now" shows the conditions right now, as the main card does)
-    const hmm = toMm(H.precipitation[k] ?? 0), wc = i ? (H.weather_code[k] >= 51 && H.weather_code[k] < 95 && hmm < .1 ? dryCode(H.cloud_cover[k]) : H.weather_code[k]) : X.c.weather_code;
+    // "Now" takes its rain from the quarter-hour timeline, like its icon (X.c, weatherAt) and the precipitation card,
+    // as an hourly rate; later hours keep the hourly forecast's amount
+    const q0 = i ? -1 : quarterAt(Date.now()), now0 = q0 >= 0 && X.nc.rate[q0] >= X.nc.thr ? X.nc.vals[q0] * 4 : q0 >= 0 ? 0 : null;
+    const hmm = now0 != null ? toMm(now0) : toMm(H.precipitation[k] ?? 0), wc = i ? (H.weather_code[k] >= 51 && H.weather_code[k] < 95 && hmm < .1 ? dryCode(H.cloud_cover[k]) : H.weather_code[k]) : X.c.weather_code;
     const day = i ? !!H.is_day[k] : X.isDay, [, kind] = wmo(wc);
     temps.push(i ? H.temperature_2m[k] : X.c.temperature_2m); foggy.push(kind === "fog");
     const isMid = H.time[k].endsWith("T00:00");
@@ -1489,7 +1492,7 @@ function renderHourly() {
     if (rains) for (let j = 0; j < 5 - lit; j++) pd += `<circle class="drip" cx="4" cy="${26 - (4 - j) * 5.5}" r="2.2" fill="var(--rain)" style="--p:${per}s;--w:${(t0 + j * stepT).toFixed(2)}s"/>`;
     if (mm >= .1 || (pop ?? 0) >= 10) labelled = true;
     cols.push(`<div class="hcol">${tl}${icon(kind, day)}<span></span>
-      <div class="hpop"><svg viewBox="0 0 8 30" aria-hidden="true">${pd}</svg>${rainLabel(mm, .1, H.precipitation[k], pop)}</div></div>`);
+      <div class="hpop"><svg viewBox="0 0 8 30" aria-hidden="true">${pd}</svg>${rainLabel(mm, .1, now0 ?? H.precipitation[k], pop)}</div></div>`);
   }
   const valid = temps.filter(v => v != null), mn = Math.min(...valid), mx = Math.max(...valid), span = (mx - mn) || 1;
   const pts = temps.map((v, i) => [i * colW + colW / 2, 24 + (1 - ((v ?? mn) - mn) / span) * 44]);
@@ -3048,7 +3051,10 @@ function renderNet() {
 $("#netPill").onclick = async () => {
   if (loading) return;
   await load(place);
-  if (netFail && navigator.onLine) location.reload();
+  if (!netFail || !navigator.onLine) return;
+  // at most one reload every two minutes, so a forecast service that is down doesn't turn Retry into a reload loop
+  let last = 0; try { last = +sessionStorage.getItem("retryReload") || 0; sessionStorage.setItem("retryReload", String(Date.now())); } catch {}
+  if (Date.now() - last > 12e4) location.reload();
 };
 addEventListener("online", () => { netFail = false; renderNet(); if (place) load(place, { quiet: true }); });
 addEventListener("offline", renderNet);

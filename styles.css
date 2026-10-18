@@ -713,7 +713,7 @@ html.warned .topbar::before{content:"";width:8px;height:8px;border-radius:50%;ba
   .air,.air:not(.open){grid-template-columns:minmax(0,1fr) minmax(0,0fr);column-gap:0;transition:grid-template-columns .35s ease,column-gap .35s ease}
   .air.open{grid-template-columns:minmax(0,1fr) minmax(0,1.25fr);column-gap:20px}
   .air .pol-wrap,.air.open .pol-wrap{grid-template-rows:1fr;min-width:0;overflow:hidden}
-  .air:not(.open) .pol-wrap{transition:visibility 0s .35s}
+  .air:not(.open) .pol-wrap{transition:visibility 0s .35s;contain:size} /* closed, its squeezed list mustn't prop the card up taller than the reading */
   .air .pol-wrap>div{opacity:0;transition:opacity .15s ease}
   .air.open .pol-wrap>div{opacity:1;transition:opacity .25s ease .15s}
 }
