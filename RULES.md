@@ -122,6 +122,13 @@ What Kwick feels like, as a touchstone for anything new: does it look like it wa
     on anything large; draw it once and move the layer. Continuous redraws across many cards make Chrome fall behind
     and flash half-drawn or stale cards. Small, throttled exceptions (the heat shimmer on the arc and the number) are fine.
 22. Animations pause when their card is off screen or the tab is hidden, and respect "reduce motion".
+22a. **Everything that folds open, folds smoothly, all the same way.** A panel, list or menu that opens inside a card
+    or sheet (the air card's pollutants, the folded pollen strip, a day in the 14-day sheet) never jumps from hidden to
+    shown with `display:none`. It sits in a wrapper that grows from `grid-template-rows:0fr` to `1fr` over about
+    .35 s (`ease`; a big panel like a whole day may take up to .45 s), with its content clipped (`min-height:0;
+    overflow:hidden`) and `visibility:hidden` once closed, so nothing in it can be tabbed to; its arrow turns along.
+    Closing runs the same way back. Being short and only on a tap, this is the one allowed exception to 21a's
+    "transform and opacity only".
 23. Canvases are sized to the screen's pixels and redrawn only when something changed.
 24. Heavy things (map, moon map, climate history) load only when they are about to be seen.
 
