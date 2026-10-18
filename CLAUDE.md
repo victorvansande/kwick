@@ -24,7 +24,8 @@ know (decisions, preferences, open choices), and push it along.**
 - **Design choices as pictures:** for any choice with several directions (a card, chart, icon, animation, layout),
   show 2–4 small visual mockups in the chat to pick from, with one recommendation, before building.
 - **Commit after every change; push only when Victor says so** (to save tokens). In each reply, say what is still
-  unpushed. A push to `main` goes live after the checks pass.
+  unpushed. A push to `main` goes live right away: GitHub Pages still publishes straight from the branch (Settings →
+  Pages → Source isn't "GitHub Actions" yet), so the checks run beside it and a failed check doesn't stop it.
 - **Check every change in the preview** (keep it open and scroll to the changed card), at phone width too (393 px and
   320 px), by day and at night, including the sheets that show the same thing.
 - **Correct and scientific:** one source per quantity, cards never contradict each other, only measured data or
@@ -136,13 +137,13 @@ know (decisions, preferences, open choices), and push it along.**
   tick where each month begins.
 - New rules from recurring problems (2026-10-18): 1a rain needs rain, 12c same job same behaviour, 12d tappable looks
   tappable, 20 motion follows data, 20b axes are true, 21b memory light, 25 also check ~1000/1300 px and the wall.
-- Rules audit (2026-10-18), not yet fixed, Victor to answer: clear breaks to fix: at 320 px the wind foot is cut
-  ("km/h"), and the feels-like, humidity ("Dew point 8°"), pressure ("Last 3 hours") feet and the moon tiles ("Full ·
-  Mon", "26 Oct") break mid-phrase; moon says "Back to today" vs "Today"; moon strip labels are 9 px; the summary
-  works per hour (says "drizzle around 14:00" while the card says rain from 14:15); times past midnight don't say
-  "tomorrow" (precipitation card, summary, arc, offline pill); closed 14-day sheet days stay tabbable. Decisions
-  asked: remove the white halo on dot-matrix numbers on coloured cards (`.pig .dm` drop-shadow) and list the
-  approved data-driven lights (clean air, glints, sun glow, bolts) in rule 19; let the visibility ridges drift with
-  the wind; raspberry on the WHO limit line and the How sure app line; the storm flash animates the card background
-  (make it an opacity layer). Also known: ~20 hard-coded colours in app.js drawings; Open-Meteo's hourly amount is
-  for the hour before its label.
+- Rules audit (2026-10-18): fixed — at 320 px every card foot stays one line and shrinks a little (to 11 px) instead
+  of breaking or being cut (`fitHeads`; the wind foot drops "From" there via `data-short`); moon tiles stay whole (a
+  72 px moon picture up to 360 px wide); moon's way back says "Today"; moon strip labels 11 px; the summary speaks
+  to the quarter hour in the precipitation card's words; times on another day say so (`fmtTD`: "01:15 tomorrow",
+  "23:00 yesterday"); closed 14-day days can't be tabbed to. Declined for now (Victor, 2026-10-18), don't do unasked:
+  removing the dot-matrix halo (`.pig .dm` drop-shadow) and listing the approved lights in rule 19; visibility
+  ridges following the wind; raspberry on the WHO line and How sure's app line; the storm flash as an opacity layer.
+  Also known: ~20 hard-coded colours in app.js drawings; Open-Meteo's hourly amount is for the hour before its label.
+- Sheets and the back button: a sheet opened right after another closed waits for that close's history step to land
+  (the WebKit check at 1280 px failed on it on 2026-10-18).

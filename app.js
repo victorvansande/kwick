@@ -72,6 +72,12 @@ function T(str) {
   return new Date(Date.UTC(Y, M - 1, Dd, h, m) - OFF * 1000);
 }
 const loc = () => S.clock === "12" ? "en-US" : "en-GB";
+/* A time that says its day when it isn't today (rule 3): "13:30", "01:15 tomorrow", "23:00 yesterday", else "Tue 09:00". */
+const dayKey = t => new Date(t.valueOf() + OFF * 1000).toISOString().slice(0, 10);
+const fmtTD = t => {
+  const d = Math.round((Date.parse(dayKey(t)) - Date.parse(dayKey(Date.now()))) / 864e5), s = fmtT(new Date(t.valueOf()));
+  return d === 0 ? s : d === 1 ? `${s} tomorrow` : d === -1 ? `${s} yesterday` : `${wd(dayKey(t))} ${s}`;
+};
 const fmtT = d => (!d || isNaN(d)) ? "–" : new Intl.DateTimeFormat(loc(), { hour: S.clock === "12" ? "numeric" : "2-digit", minute: "2-digit", hour12: S.clock === "12", timeZone: TZ }).format(d);
 const fmtH = d => S.clock === "12"
   ? new Intl.DateTimeFormat("en-US", { hour: "numeric", hour12: true, timeZone: TZ }).format(d).replace(" ", "").toLowerCase()
@@ -378,7 +384,7 @@ function drawStrip(cv, off, base, mirror) {
   const s = sizeCanvas(cv); if (!s) return;
   const { ctx, w, h } = s, step = stripStep(w), r = Math.min(step * .36, 8), mid = w / 2, cy = 16;
   const phaseOn = d => moonIllum(new Date(base.valueOf() + d * dayMs)).phase;
-  ctx.font = "500 9px 'Isobar Digits', Geist, sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "alphabetic";
+  ctx.font = "500 11px 'Isobar Digits', Geist, sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "alphabetic"; // 11 px, the smallest size on the type scale
   const d0 = Math.floor(off - mid / step) - 1, d1 = Math.ceil(off + mid / step) + 1;
   let prev = phaseOn(d0 - 1);
   const tags = [];
@@ -510,6 +516,20 @@ function fitHeads() {
     p.style.fontSize = "";
     if (p.scrollWidth > p.clientWidth + 1) p.style.fontSize = `${Math.max(13, parseFloat(getComputedStyle(p).fontSize) * p.clientWidth / p.scrollWidth - .3).toFixed(1)}px`;
   }
+  // a card's foot is one line too (rule 8) and never breaks a phrase (9a): on a narrow card it shrinks a little, down to
+  // 11 px; a foot that still doesn't fit falls back to its short form (data-short), such as the wind's "N · gusts 9 km/h"
+  const fit = f => {
+    f.style.fontSize = "";
+    if (f.scrollWidth <= f.clientWidth + 1) return true;
+    f.style.fontSize = `${Math.max(11, 13 * f.clientWidth / f.scrollWidth - .3).toFixed(1)}px`;
+    return f.scrollWidth <= f.clientWidth + 1;
+  };
+  for (const f of document.querySelectorAll(".card .foot")) {
+    for (const s of f.querySelectorAll("[data-full]")) { s.innerHTML = s.dataset.full; delete s.dataset.full; }
+    if (!f.clientWidth || fit(f)) continue;
+    const short = f.querySelectorAll("[data-short]");
+    if (short.length) { for (const s of short) { s.dataset.full = s.innerHTML; s.innerHTML = s.dataset.short; } fit(f); }
+  }
 }
 const tile = (k, v) => `<div class="tile"><span class="mono">${k}</span><b>${v}</b></div>`;
 const card = id => document.getElementById(id);
@@ -565,7 +585,7 @@ function renderSummary() {
   // within the next six hours the quarter-hour timeline decides (the same one the precipitation card shows); later on, the hourly
   const nc = nowcast(), ncWet = k => { const t0 = T(H.time[k]).valueOf(), t1 = t0 + 36e5; if (!nc.times.length || t1 > nc.end) return null; return nc.times.some((t, i) => t >= t0 - 9e5 && t < t1 && nc.rate[i] >= nc.thr); };
   const wet = k => ncWet(k) ?? (mmh(k) >= .2 || ((H.precipitation_probability[k] ?? 0) >= 60 && PRECIP.includes(kindAt(k))));
-  const at = k => fmtT(T(H.time[k]));
+  const at = k => fmtTD(T(H.time[k]));
   // what falls during a wet spell, named after its wettest hour
   const what = (a, b) => {
     let peak = a; for (let k = a; k < b; k++) if (mmh(k) > mmh(peak)) peak = k;
@@ -578,14 +598,32 @@ function renderSummary() {
   const cap = s => s[0].toUpperCase() + s.slice(1);
   let first;
   const wetNow = nc.times.length ? nc.rate[0] >= nc.thr : wet(hi) || (c.precipitation ?? 0) > 0;
-  if (wetNow) {
+  // within the next six hours the sentence speaks to the quarter hour and in the precipitation card's own words
+  // (light / heavy by its rate, snow when most of it is snow), so the two never disagree about when or what
+  const shower = w => w.replace(/^(light |heavy )?rain$/, m => m.startsWith("heavy") ? "a heavy shower" : m.startsWith("light") ? "a light shower" : "a shower");
+  const qWhat = (a, b) => {
+    let pk = 0, sn = 0, storm = false;
+    for (let i = a; i < b; i++) { pk = Math.max(pk, nc.rate[i]); if ((nc.snow[i] ?? 0) > 0) sn++; const k = H.time.findIndex(s => T(s) > nc.times[i]) - 1; if (k >= 0 && kindAt(k) === "thunder") storm = true; }
+    return storm ? "thunderstorms" : (pk < 2.5 ? "light " : pk >= 7.6 ? "heavy " : "") + (sn * 2 >= b - a ? "snow" : "rain");
+  };
+  let ncFirst = null;
+  if (nc.times.length) {
+    const n = nc.rate.length, wq = i => nc.rate[i] >= nc.thr, qT = i => fmtTD(nc.times[i]);
+    if (wetNow) { const i = nc.rate.findIndex(v => v < nc.thr); if (i > 0) ncFirst = `${cap(qWhat(0, i))} until ${qT(i)}, then dry.`; }
+    else {
+      const i = nc.rate.findIndex(v => v >= nc.thr);
+      if (i >= 0) { let j = i; while (j < n && wq(j)) j++; ncFirst = j < n && j - i <= 8 ? `Dry, with ${shower(qWhat(i, j))} around ${qT(i)}.` : `Dry until ${qT(i)}, then ${qWhat(i, j)}.`; }
+    }
+  }
+  if (ncFirst) first = ncFirst;
+  else if (wetNow) {
     let stop = hi; while (stop < end && wet(stop)) stop++;
     first = stop < end ? `${cap(what(hi, stop))} until ${at(stop)}, then dry.` : `${cap(what(hi, end))} on and off for the next 12 hours.`;
   } else {
     let start = hi; while (start < end && !wet(start)) start++;
     if (start < end) {
       let stop = start; while (stop < end && wet(stop)) stop++;
-      first = stop - start <= 2 ? `Dry, with ${what(start, stop).replace(/^(light |heavy )?rain$/, m => m.startsWith("heavy") ? "a heavy shower" : m.startsWith("light") ? "a light shower" : "a shower")} around ${at(start)}.`
+      first = stop - start <= 2 ? `Dry, with ${shower(what(start, stop))} around ${at(start)}.`
         : `Dry until ${at(start)}, then ${what(start, stop)}.`;
     } else {
       // no rain: describe the sky, or the fog if it hangs around
@@ -1032,12 +1070,12 @@ function renderHero() {
     const wet = g => g.type === "wet" || g.type === "snow";
     const cur = segs.find(g => now >= g.t0 && now < g.t1);
     const next = cur && wet(cur) ? segs.find(g => g.t0 >= cur.t1 && !wet(g)) : segs.find(g => g.t0 > now && wet(g));
-    if (next) mid = cur && wet(cur) ? `Dry from ${fmtT(next.h)}` : `${next.type === "snow" ? "Snow" : "Rain"} from ${fmtT(next.h)}`;
+    if (next) mid = cur && wet(cur) ? `Dry from ${fmtTD(next.h)}` : `${next.type === "snow" ? "Snow" : "Rain"} from ${fmtTD(next.h)}`;
     // within the next six hours, to the quarter hour from the same timeline as the precipitation card
     const nc = nowcast();
     if (nc.times.length) {
       const wetQ = i => nc.rate[i] >= nc.thr, nowWet = wetQ(0), i = nowWet ? nc.rate.findIndex(v => v < nc.thr) : nc.rate.findIndex(v => v >= nc.thr);
-      if (i > 0 && nc.times[i] <= a1) mid = nowWet ? `Dry from ${fmtT(nc.times[i])}` : `${wmo(hourAt(nc.times[i]).code)[1] === "snow" ? "Snow" : "Rain"} from ${fmtT(nc.times[i])}`;
+      if (i > 0 && nc.times[i] <= a1) mid = nowWet ? `Dry from ${fmtTD(nc.times[i])}` : `${wmo(hourAt(nc.times[i]).code)[1] === "snow" ? "Snow" : "Rain"} from ${fmtTD(nc.times[i])}`;
     }
   }
   const rb = body === "sun" ? rainbowChance() : null;
@@ -1312,9 +1350,9 @@ function renderNow() {
   if (first < 0) { say = `No rain expected in the next ${Math.round(rate.length / 4)} hours`; sub = "Dry"; }
   else if (first === 0) {
     const stop = rate.findIndex(v => v < thr);
-    say = stop < 0 ? `${P} continues for the next ${Math.round(rate.length / 4)} hours` : `${P} easing off around ${fmtT(times[stop])}`;
+    say = stop < 0 ? `${P} continues for the next ${Math.round(rate.length / 4)} hours` : `${P} easing off around ${fmtTD(times[stop])}`;
     sub = `${inten(peak)}${low} now`;
-  } else { say = `${P} likely from about ${fmtT(times[first])}`; sub = `${inten(peak)}${low} · in ${inMins((times[first] - Date.now()) / 6e4)}`; }
+  } else { say = `${P} likely from about ${fmtTD(times[first])}`; sub = `${inten(peak)}${low} · in ${inMins((times[first] - Date.now()) / 6e4)}`; }
   if (sub !== "Dry" && hail.some(Boolean)) sub += " · hail";
   else if (sub !== "Dry" && tIdx.length) sub += " · thunder";
   const total = vals.reduce((a, b) => a + b, 0), snowTotal = snow.reduce((a, b) => a + b, 0);
@@ -1396,7 +1434,7 @@ function renderWind() {
   el.innerHTML = `${gusts}${head("Wind", sp == null ? "–" : esc(bname))}
     <div class="compass"><svg viewBox="0 0 200 200" role="img" aria-label="Wind from ${pt16(dir)}">${ticks}${lab}${tri}</svg>
       <div class="compass-c" role="img" aria-label="${sp == null ? "No wind data" : `${spTxt} ${WU[S.wind]}`}">${dm(spTxt)}<span class="mono u">${WU[S.wind]}</span></div></div>
-    <div class="foot"><span>From ${PTS[Math.round(((dir % 360) + 360) % 360 / 45) % 8 * 2]} · gusts <b>${R(gust)}</b> ${WU[S.wind]}</span></div>`;
+    <div class="foot"><span data-short="${PTS[Math.round(((dir % 360) + 360) % 360 / 45) % 8 * 2]} · gusts <b>${R(gust)}</b> ${WU[S.wind]}">From ${PTS[Math.round(((dir % 360) + 360) % 360 / 45) % 8 * 2]} · gusts <b>${R(gust)}</b> ${WU[S.wind]}</span></div>`;
 }
 
 /* ---------------- feels like ---------------- */
@@ -1978,7 +2016,7 @@ function renderMoon() {
   // stars kept clear of the moon itself, so none show through its dark side
   el.innerHTML = `${starField(4111, 20, (x, y) => x < 44 && y > 14 && y < 82)}
     <header class="ch"><h3 id="moonWhen">Moon</h3><p id="moonPhase"></p></header>
-    <button class="hero-now" id="moonNow" hidden>Back to today</button>
+    <button class="hero-now" id="moonNow" hidden>Today</button>
     <div class="moon"><canvas id="moonCv" role="img"></canvas>
       <div class="moon-stats">
         <div><span class="num big" id="moonLit"></span></div>
@@ -3032,7 +3070,7 @@ $("#warn").onclick = () => {
 /* ---------------- connection ---------------- */
 // like a native app: without a connection the last forecast stays up, with a pill saying since when
 let netFail = false;
-const updLabel = t => (Date.now() - t > 20 * 36e5 ? wd(new Date(t + OFF * 1000).toISOString().slice(0, 10)) + " " : "") + fmtT(new Date(t));
+const updLabel = t => fmtTD(t); // "13:30", "23:00 yesterday" or "Tue 13:30"
 function renderNet() {
   const offline = !navigator.onLine, on = (offline || netFail) && !!D, pill = $("#netPill");
   pill.classList.toggle("on", on); pill.setAttribute("aria-hidden", String(!on)); pill.tabIndex = on ? 0 : -1;
@@ -3238,13 +3276,16 @@ document.querySelectorAll("dialog").forEach(d => new MutationObserver(lockPage).
 // The back button (or gesture) closes an open sheet instead of leaving the app. Each sheet adds a step to the
 // history while it's open; closing it any other way (✕, a tap outside, Escape) takes that step back out again.
 {
-  let skipPop = 0;
+  // history.back() lands a moment later: a sheet opened before it has landed waits for it before adding its own step,
+  // or the late step back would take the new sheet's step out and the next back would leave the app
+  let skipPop = 0, waiting = [];
   document.querySelectorAll("dialog").forEach(d => {
-    new MutationObserver(() => { if (d.open && !d.hist) { d.hist = true; history.pushState({ sheet: d.id }, ""); } }).observe(d, { attributes: true, attributeFilter: ["open"] });
+    const push = () => { if (d.open) history.pushState({ sheet: d.id }, ""); else d.hist = false; };
+    new MutationObserver(() => { if (d.open && !d.hist) { d.hist = true; if (skipPop) waiting.push(push); else push(); } }).observe(d, { attributes: true, attributeFilter: ["open"] });
     d.addEventListener("close", () => { if (!d.hist) return; d.hist = false; if (history.state && history.state.sheet === d.id) { skipPop++; history.back(); } });
   });
   addEventListener("popstate", () => {
-    if (skipPop) { skipPop--; return; }
+    if (skipPop) { if (!--skipPop) { const w = waiting; waiting = []; w.forEach(f => f()); } return; }
     const d = document.querySelector("dialog[open]"); if (d) { d.hist = false; d.close(); }
   });
 }

@@ -332,6 +332,7 @@ html.lq .dock,html.lq .topbar{-webkit-backdrop-filter:url(#lq-lens);backdrop-fil
 .learn p{margin:0;font-size:15px;line-height:1.55;color:var(--ink-2)}
 .learn .now{padding:12px 14px;border-radius:16px;background:var(--wash);color:var(--ink)}
 .foot b{color:var(--ink);font-weight:600}
+.foot > span{white-space:nowrap} /* a foot never breaks a phrase; fitHeads shrinks it a little instead (rule 8, 9a) */
 /* the wind foot: gusts and the Beaufort name each stay whole, and drop under each other on a narrow card */
 .a-wind .foot{flex-wrap:wrap;row-gap:2px;padding-top:6px} /* a little air between the compass and the line under it */
 .a-wind .foot span{white-space:nowrap}
@@ -576,7 +577,9 @@ html.warned .topbar::before{content:"";width:8px;height:8px;border-radius:50%;ba
 .bar .nd{position:absolute;top:50%;width:10px;height:10px;margin:-5px 0 0 -5px;border-radius:50%;background:var(--signal);box-shadow:0 0 0 2px rgba(0,0,0,.25)}
 .day-b{display:grid;grid-template-rows:0fr;transition:grid-template-rows .45s cubic-bezier(.3,.7,.2,1);margin-top:-22px}
 .day.open .day-b{grid-template-rows:1fr}
-.day-bi{overflow:hidden}
+.day-bi{overflow:hidden;min-height:0}
+/* closed, a day's details can't be tabbed to; they turn hidden once the fold has finished closing (rule 22a) */
+.day:not(.open) .day-b{visibility:hidden;transition:grid-template-rows .45s cubic-bezier(.3,.7,.2,1),visibility 0s .45s}
 .day-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;padding:6px 14px 38px}
 .day-grid .say{grid-column:1/-1;font-weight:600;font-size:15px;letter-spacing:-.01em;padding:0 4px 4px}
 .tile{display:grid;gap:4px;padding:12px}
@@ -954,6 +957,7 @@ body.net-off .toast{bottom:calc(122px + var(--dock-b))}
   .air{grid-template-columns:1fr}
   .air .pol{margin-top:16px}
   .moon{grid-template-columns:110px minmax(0,1fr);gap:16px}
+  #c-moon .tile span,#c-moon .tile b{white-space:nowrap} /* "Full · Mon", "26 Oct", "Moonrise" stay whole (rule 9a) */
   .day-h{grid-template-columns:minmax(0,1fr) 24px 34px minmax(0,1.6fr);gap:8px;padding:13px 14px 34px}
   .dn i{display:none}
   .day-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
@@ -1111,3 +1115,5 @@ html.wall .a-moon .strip canvas{height:46px}
 .hg-col i.on{background:var(--ink);transform:none;opacity:.85}
 .hg-col .tri{left:50%;width:14px;height:5px;margin:0 0 -2.5px -7px;border-radius:3px} /* lying across the column */
 :root[data-mode="day"] .pig:not(.sky) .hg-col i.on{background:var(--ink)}
+/* the narrowest phones: a smaller moon picture leaves the four tiles room for their words on one line */
+@media (max-width:360px){.moon{grid-template-columns:72px minmax(0,1fr);gap:12px}}
