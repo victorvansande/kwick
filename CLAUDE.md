@@ -70,6 +70,12 @@ know (decisions, preferences, open choices), and push it along.**
   before{animation:none}`, restarting 300 px before it scrolls in); and every card is repainted (`.rp`, one frame)
   as it comes into view and when the app returns to the front, plus a redraw when Chrome restores a lost canvas. Not
   reproducible on demand, so watch for it; if it returns, look at the Humidity card's full-card canvas next.
+  It returned (2026-10-19, desktop Chrome: the 14 days strip and the precipitation grid half drawn, only their animated
+  parts showing). Second round: no live backdrop blur on the glass cards any more (no visible difference on the soft
+  page background), no fade mask around the hours strip, and the precipitation grid always draws its full grey grid
+  with the blue dots on top, which drop their fill-in animation 3 s after drawing (`.settled`), so a stalled animation
+  never leaves holes. If it still returns: stop the cards' drifting light (`.pig::before`) and the dot-matrix halo
+  (`.pig .dm` drop-shadow), and ask Victor to check chrome://gpu for disabled hardware acceleration.
 - Loading: the cards draw as soon as the forecast is in; air quality (air and pollen cards keep their skeleton
   meanwhile) and the four-model spread fill in after. Still open: a first-ever visit waits for the location prompt
   (up to 12 s) before it fetches anything.
@@ -107,14 +113,13 @@ know (decisions, preferences, open choices), and push it along.**
   - an orange or red warning in force: a soft glow in its colour round the dock and a dot in the top bar (the one
     glow RULES.md 19 allows: a signal, not decoration);
   - hail (WMO 96/99): white grains bounce on the precipitation stack, subtitle "· hail";
-  - fog hours in the 48-hour strip: overlapping soft drifting puffs (not a band);
   - storm (gusts ≥ 75 km/h): every card's slow light drifts at 16 s instead of 34 s;
   - thunder sky: a muted plum corner (not the signal raspberry, which stays for "now" and warnings); thunder rain is a
     downpour (more, longer, faster streaks);
   - rain and snow lean with the wind everywhere (east-west part sets the side, speed the slant, ~2° to 28°);
   - thunder in the precipitation grid: every 3–7 s a random zigzag bolt of white dots down the grid, sometimes forked;
   - snow lying on the ground (current snow_depth ≥ 1 cm): a soft lumpy ridge on the main card's horizon line.
-- Tried and removed (don't redo unasked): a glow inside the main card's clouds and a flash in the cloud cover card
+- Tried and removed (don't redo unasked): fog puffs in the 48-hour strip (2026-10-19); a glow inside the main card's clouds and a flash in the cloud cover card
   during thunder; frost needles in the 48-hour strip; a golden-hour glow on the sun card.
 - The main card's own thunder flash and glowing bolts are unchanged; making them calmer (thinner, no glow, rarer) was
   offered, not decided. Other ideas offered, not decided: real lightning strikes on the radar (Blitzortung, terms to

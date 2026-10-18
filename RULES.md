@@ -142,11 +142,13 @@ What Kwick feels like, as a touchstone for anything new: does it look like it wa
     animate what forces a redraw every frame (gradient positions, custom properties inside gradients, blur, SVG noise)
     on anything large; draw it once and move the layer. Continuous redraws across many cards make Chrome fall behind
     and flash half-drawn or stale cards. Small, throttled exceptions (the heat shimmer on the arc and the number) are fine.
-21b. **Keep the graphics chip's memory light.** No blur on layers that move (the cards' light is soft gradients, not a
-    blurred layer); big moving layers stop altogether off screen so Chrome can let them go; and a card is repainted as
+21b. **Keep the graphics chip's memory light.** No live backdrop blur on cards (only on the small floating dock, top
+    bar and buttons) and no mask around a scrolling strip; no blur on layers that move (the cards' light is soft
+    gradients, not a blurred layer); big moving layers stop altogether off screen so Chrome can let them go; and a card is repainted as
     it comes into view, because Chrome short of memory can drop a layer's pixels and leave a card empty. A card also
     clips its own moving layers to its rounded shape, since Chrome and iOS can let a moved layer paint outside the
-    plain corner clip.
+    plain corner clip. Anything drawn in steps (dots filling in) ends in a
+    settled state that doesn't depend on the animation, so a stalled animation never leaves a hole.
 22. Animations pause when their card is off screen or the tab is hidden, and respect "reduce motion".
 22a. **Everything that folds open, folds smoothly, all the same way.** A panel, list or menu that opens inside a card
     or sheet (the air card's pollutants, the folded pollen strip, a day in the 14-day sheet) never jumps from hidden to

@@ -1394,6 +1394,9 @@ function renderNow() {
     const period = (5.6 - Math.min(lit, 8) * .3).toFixed(2), stepT = period * .024;
     const start = 2.4 + ((i * 7919) % 97) / 97 * period;
     for (let k = 0; k < rows; k++) {
+      // the full grid of faint dots is always there; lit (blue) dots land on top of their own grey dot, so while they
+      // fill in, or if a drawing ever stalls, the grid shows no holes
+      if (k < lit) grid += `<circle cx="${cx}" cy="${cyOf(k)}" r="2.1" fill="currentColor" opacity=".07"/>`;
       if (k >= lit) { if (k < (chance[i] || 0)) grid += `<circle cx="${cx}" cy="${cyOf(k)}" r="2.3" fill="currentColor" opacity=".3"/>`; else if (dry.has(`${i},${k}`)) glow += `<circle cx="${cx}" cy="${cyOf(k)}" r="2.5" fill="${X.isDay ? "#ffd88a" : "#e6e4ff"}"/>`; else grid += `<circle cx="${cx}" cy="${cyOf(k)}" r="2.1" fill="currentColor" opacity=".07"/>`; continue; }
       const tone = (.95 - (k / Math.max(lit - 1, 1)) * .4 * (lit / rows)).toFixed(2);
       const fill = `--d:${(.25 + i * .035 + k * .09).toFixed(2)}s`;
@@ -1419,6 +1422,9 @@ function renderNow() {
     <div class="now-say">${esc(say)}</div>
     <div class="now-chart"><svg viewBox="0 0 ${n * sp} ${rows * sp}" role="img" aria-label="Precipitation per 15 minutes"><defs><filter id="bloom" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="1.3" result="b"/><feComponentTransfer in="b" result="s"><feFuncA type="linear" slope=".55"/></feComponentTransfer><feMerge><feMergeNode in="s"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>${dots}${tIdx.length ? `<g class="strike" data-thun="${tIdx.join(",")}" data-n="${n}" data-rows="${rows}"></g>` : ""}</svg></div>
     <div class="now-axis">${axis}</div>`;
+  // once every dot has filled in (the last starts after about 1.7 s), the fill-in animation is dropped, so the blue dots
+  // stand in their final place even if Chrome stalled the animation or the card was paused off screen meanwhile
+  const chart = el.querySelector(".now-chart"); setTimeout(() => chart.classList.add("settled"), 3000);
   clearTimeout(strikeT); if (tIdx.length) strikeT = setTimeout(strikes, 2500); // the first strike once the grid has filled in
 }
 
@@ -1490,23 +1496,6 @@ function renderFeels() {
 }
 
 /* ---------------- hourly (glass) ---------------- */
-/* Fog in the hours strip: over each run of foggy hours, a bank of overlapping soft puffs (oval radial gradients of
-   varying size and height) that each drift slowly at their own pace, so it reads as fog rather than a band and you
-   see when it settles and when it lifts. Transform only (a wide strip may not carry a filter, rule 21). */
-function fogBands(foggy, colW) {
-  let out = "";
-  for (let i = 0; i < foggy.length; i++) {
-    if (!foggy[i]) continue;
-    let j = i; while (j < foggy.length && foggy[j]) j++;
-    const x0 = i * colW - 14, x1 = j * colW + 14;
-    for (let x = x0, n = 0; x < x1 - 30; x += 26, n++) {
-      const h = (i * 31 + n * 17) % 23, w = 74 + h * 2, ht = 52 + (h * 7) % 40, top = 64 + (h * 5) % 34 - ht / 4;
-      out += `<span class="hfog" aria-hidden="true" style="left:${x - w / 2 + 13}px;top:${top}px;width:${w}px;height:${ht}px;--w:${(-h * .9).toFixed(1)}s;--d:${(9 + h % 7).toFixed(0)}s"></span>`;
-    }
-    i = j;
-  }
-  return out;
-}
 /* The rain gauge under each hour (and day): its five dots show the amount, in the same blue as the precipitation card,
    one dot for each step reached (mm in an hour, or in a day); the blue number under it is that amount. Where no rain
    is in the forecast but it might still rain, the dots stay empty and the chance shows in grey instead. So blue always
@@ -1515,7 +1504,7 @@ const AMT_H = [.1, .5, 1, 2, 4], AMT_D = [.2, 1, 2, 5, 10];
 const rainLabel = (mm, min, v, pop) => mm >= min ? `<span>${fmtP(v)}<small>${PU()}</small></span>` : pop != null && pop >= 10 ? `<span class="pc">${pop}%</span>` : "<span>&nbsp;</span>";
 function renderHourly() {
   const { H, hi } = X, el = card("c-hourly");
-  const n = Math.min(48, H.time.length - hi), colW = 58, temps = [], cols = [], foggy = [];
+  const n = Math.min(48, H.time.length - hi), colW = 58, temps = [], cols = [];
   let labelled = false;
   for (let i = 0; i < n; i++) {
     const k = hi + i, t = T(H.time[k]), pop = nz(H.precipitation_probability[k]);
@@ -1527,7 +1516,7 @@ function renderHourly() {
     const q0 = i ? -1 : quarterAt(Date.now()), now0 = q0 >= 0 && X.nc.rate[q0] >= X.nc.thr ? X.nc.vals[q0] * 4 : q0 >= 0 ? 0 : null;
     const hmm = now0 != null ? toMm(now0) : toMm(H.precipitation[k] ?? 0), wc = i ? (H.weather_code[k] >= 51 && H.weather_code[k] < 95 && hmm < .1 ? dryCode(H.cloud_cover[k]) : H.weather_code[k] < 51 && hmm >= .1 ? ((H.snowfall?.[k] ?? 0) > 0 ? 71 : normRain(61, hmm)) : normRain(H.weather_code[k], hmm)) : X.c.weather_code;
     const day = i ? !!H.is_day[k] : X.isDay, [, kind] = wmo(wc);
-    temps.push(i ? H.temperature_2m[k] : X.c.temperature_2m); foggy.push(kind === "fog");
+    temps.push(i ? H.temperature_2m[k] : X.c.temperature_2m);
     const isMid = H.time[k].endsWith("T00:00");
     const tl = i === 0 ? `<span class="htime now">Now</span>` : isMid ? `<span class="htime mid">${wd(H.time[k].slice(0, 10))}</span>` : `<span class="htime">${fmtH(t)}</span>`;
     const mm = hmm, lit = AMT_H.filter(v => mm >= v).length;
@@ -1583,7 +1572,7 @@ function renderHourly() {
       <p class="hv-h">${R(mn)}° to ${R(mx)}°</p>
       <p class="hv-d" id="hDaysSub">${dayHint()}</p></header>
       <div class="hseg" role="tablist" aria-label="Forecast range"><button role="tab" data-v="h" aria-selected="${view === "h"}">48 h</button><button role="tab" data-v="d" aria-selected="${view === "d"}">14 days</button></div></div>
-    <div class="hfade hv-h"><div class="hscroll hv-h" tabindex="0" aria-label="Hourly forecast, scroll sideways"><div class="hin${labelled ? "" : " dry"}" style="grid-template-columns:repeat(${n},${colW}px);width:${W}px">${track}${fogBands(foggy, colW)}${cols.join("")}${svg}</div></div></div>
+    <div class="hfade hv-h"><div class="hscroll hv-h" tabindex="0" aria-label="Hourly forecast, scroll sideways"><div class="hin${labelled ? "" : " dry"}" style="grid-template-columns:repeat(${n},${colW}px);width:${W}px">${track}${cols.join("")}${svg}</div></div></div>
     <div class="hfade hv-d"><div class="hscroll hv-d" id="hDays" tabindex="0" aria-label="Daily forecast, scroll sideways">${view === "d" ? dayStrip() : ""}</div></div>
     <div class="hdots"><div class="dscroll hv-h" aria-hidden="true"></div><div class="dscroll hv-d" aria-hidden="true"></div><button class="info-i hv-h rain-i" aria-label="What the chance of rain and the amount mean"><svg viewBox="0 0 12 12"><path d="M6 5.4v3.6"/><path d="M6 3h.01"/></svg></button></div>
     <div class="hv-d hfoot"><span class="hfoot-l"><button class="hall-main" id="hAll">Full forecast<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 6h7M6.5 3l3 3-3 3"/></svg></button><button class="info-i rain-i" aria-label="What the chance of rain and the amount mean"><svg viewBox="0 0 12 12"><path d="M6 5.4v3.6"/><path d="M6 3h.01"/></svg></button></span><button class="hall" id="hSure">How sure?<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M4.5 2.5L8 6l-3.5 3.5"/></svg></button></div>`; // the hidden view is built when it is first opened

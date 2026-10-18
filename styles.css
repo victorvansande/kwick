@@ -296,9 +296,10 @@ dialog:focus-visible,.sheet:focus-visible{outline:none} /* opening a sheet focus
   55%{transform:translate(0,0) scale(1)}
   100%{transform:translate(4%,4%) scale(.96)}}
 
-/* liquid glass panel */
+/* glass panel: a translucent wash over the page's soft background. No live backdrop blur: on that smooth background it
+   showed nothing, while it made each card a graphics surface Chrome redrew on every scroll frame, and under memory
+   pressure Chrome then dropped cards' pixels (cards showing up empty or half drawn, rule 21b) */
 .glass{background:linear-gradient(155deg,var(--g-a),var(--g-b) 46%,var(--g-c)) var(--g-base,transparent);
-  -webkit-backdrop-filter:blur(30px) saturate(1.9);backdrop-filter:blur(30px) saturate(1.9);
   box-shadow:inset 0 1px 0 var(--g-rim),inset 0 0 0 1px var(--g-line),0 34px 64px -40px var(--g-drop)}
 
 /* glass control: flat translucent fill and one hairline. Only the floating dock and top bar refract. */
@@ -396,6 +397,10 @@ html.lq .dock,html.lq .topbar{-webkit-backdrop-filter:url(#lq-lens);backdrop-fil
 .now-chart .wet{transform-box:fill-box;transform-origin:center;animation:fillin .6s cubic-bezier(.2,.7,.2,1) var(--d) both}
 .now-chart .wet.top{animation:fillin .6s cubic-bezier(.2,.7,.2,1) var(--d) both,land var(--p) ease-out var(--w2) infinite}
 @keyframes fillin{from{opacity:0;transform:translateY(-2px) scale(.55)}to{opacity:1;transform:none}}
+/* settled (app.js, 3 s after drawing): the fill-in is over, so it's dropped and only the landing pulse and twinkle stay */
+.now-chart.settled .wet{animation:none}
+.now-chart.settled .wet.top{animation:land var(--p) ease-out var(--w2) infinite}
+.now-chart.settled .wet.tw{animation:twinkle-snow 2.8s ease-in-out var(--tw) infinite}
 @keyframes land{0%,100%{transform:none}1.2%{transform:scale(1.35)}7%{transform:none}}
 .now-chart .drip{opacity:0;animation:drip var(--p) linear var(--w) infinite}
 @keyframes drip{0%{opacity:0}.5%{opacity:.95}2.4%{opacity:.45}4.8%{opacity:.15}7.2%,100%{opacity:0}}
@@ -418,12 +423,6 @@ html.lq .dock,html.lq .topbar{-webkit-backdrop-filter:url(#lq-lens);backdrop-fil
 /* hail: a white grain drops onto the stack and bounces once */
 .now-chart .hailg{opacity:0;animation:hailg var(--p) ease-in var(--w) infinite}
 @keyframes hailg{0%{opacity:0;transform:translateY(0)}8%{opacity:1}40%{transform:translateY(var(--fall))}50%{transform:translateY(calc(var(--fall) - 6px))}60%,85%{opacity:1;transform:translateY(var(--fall))}100%{opacity:0;transform:translateY(var(--fall))}}
-/* fog over the foggy hours of the strip: overlapping soft oval puffs, each drifting at its own slow pace (fogBands) */
-.hfog{position:absolute;pointer-events:none;z-index:0;border-radius:50%;
-  background:radial-gradient(closest-side,rgba(225,230,240,.11),rgba(225,230,240,.05) 55%,transparent);
-  animation:hfog var(--d) ease-in-out var(--w) infinite alternate}
-:root[data-mode="day"] .hfog{background:radial-gradient(closest-side,rgba(110,120,140,.11),rgba(110,120,140,.05) 55%,transparent)}
-@keyframes hfog{from{transform:translate(-9px,2px) scale(.94)}to{transform:translate(9px,-2px) scale(1.06)}}
 /* a storm: the cards' light drifts about twice as fast (34 s → 16 s), restless but not busy (transform only) */
 html.storm .pig::before{animation-duration:16s}
 /* an orange or red warning in force: a soft glow in its colour round the dock (a thin ring with a halo; the dock's
@@ -457,9 +456,8 @@ html.warned .topbar::before{content:"";width:8px;height:8px;border-radius:50%;ba
 .a-hourly{min-height:0;padding:18px 0 14px}
 .a-hourly .ch-row{padding:0 var(--pad-x)} /* the same inset as every other card */
 .hscroll{overflow-x:auto;overflow-y:hidden;scrollbar-width:none;padding:0 14px 6px}
-/* the soft fade at both ends sits on a card-wide wrapper, not on the very wide scrolling strip itself: a mask on a
-   scroller makes Chrome composite the whole strip as one huge layer, which it sometimes failed to paint (a white block) */
-.hfade{-webkit-mask-image:linear-gradient(90deg,transparent 0,#000 14px,#000 calc(100% - 24px),transparent);mask-image:linear-gradient(90deg,transparent 0,#000 14px,#000 calc(100% - 24px),transparent)}
+/* no fade mask at the strip's ends: a mask around a scroller full of animated drops cost Chrome a costly extra layer,
+   and the strip was where cards kept turning up half drawn (rule 21b) */
 .a-hourly{contain:paint;clip-path:inset(0 round var(--r-card))} /* and nothing in this card may ever paint outside it, its own layers included (Chrome can let a moved layer escape the plain clip) */
 .hin{position:relative;display:grid;padding-top:30px}
 /* sun and moon track: sunlight turning to night and back at the real sunset and sunrise */
@@ -526,7 +524,7 @@ html.warned .topbar::before{content:"";width:8px;height:8px;border-radius:50%;ba
 .day::after{content:"";position:absolute;inset:0;z-index:-1;background-image:var(--grain);opacity:.12;mix-blend-mode:soft-light}
 /* in the light look the rows are frosted glass with dark text; the bars and highs keep their temperature colour */
 :root[data-mode="day"] .day{--ink:#100f18;--ink-2:rgba(16,15,24,.56);--ink-3:rgba(16,15,24,.28);color:#100f18;
-  background:linear-gradient(155deg,var(--g-a),var(--g-b) 46%,var(--g-c));-webkit-backdrop-filter:blur(30px) saturate(1.9);backdrop-filter:blur(30px) saturate(1.9);
+  background:linear-gradient(155deg,var(--g-a),var(--g-b) 46%,var(--g-c));
   box-shadow:inset 0 1px 0 var(--g-rim),inset 0 0 0 1px var(--g-line)} /* the same frosted glass as the other white cards; no drop shadow, so overlaps stay clean */
 :root[data-mode="day"] .day .tile{background:rgba(40,30,110,.05)}
 :root[data-mode="day"] .day .fx i{background:linear-gradient(to bottom,rgba(70,80,170,0),rgba(70,80,170,.7))}
