@@ -74,7 +74,8 @@ know (decisions, preferences, open choices), and push it along.**
   parts showing). Second round: no live backdrop blur on the glass cards any more (no visible difference on the soft
   page background), no fade mask around the hours strip, and the precipitation grid always draws its full grey grid
   with the blue dots on top, which drop their fill-in animation 3 s after drawing (`.settled`), so a stalled animation
-  never leaves holes. If it still returns: stop the cards' drifting light (`.pig::before`) and the dot-matrix halo
+  never leaves holes. If it still returns: (the cards' light keeps its blur: removing it on 2026-10-18 made the
+  cards visibly harder and stretched, so it came back on 2026-10-19) stop the cards' drifting light (`.pig::before`) and the dot-matrix halo
   (`.pig .dm` drop-shadow), and ask Victor to check chrome://gpu for disabled hardware acceleration.
 - Loading: the cards draw as soon as the forecast is in; air quality (air and pollen cards keep their skeleton
   meanwhile) and the four-model spread fill in after. Still open: a first-ever visit waits for the location prompt

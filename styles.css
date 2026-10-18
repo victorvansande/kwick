@@ -230,8 +230,9 @@ dialog:focus-visible,.sheet:focus-visible{outline:none} /* opening a sheet focus
 /* pigment: saturated rim, deep core */
 .pig{--ink:#fff;--ink-2:rgba(255,255,255,.64);--ink-3:rgba(255,255,255,.34);color:#fff;background:var(--mid,#222);
   box-shadow:inset 0 1px 0 rgba(255,255,255,.18),0 34px 60px -40px color-mix(in srgb,var(--mid,#000) 70%,transparent)}
-.pig::before{content:"";position:absolute;inset:-12%;z-index:-2; /* no blur: its gradients are soft already, and a blur
-  made every coloured card a costly graphics surface (one cause of cards showing up empty in Chrome) */
+.pig::before{content:"";position:absolute;inset:-18%;z-index:-2;filter:blur(18px); /* the blur is what makes the light soft and
+  smooth: without it the patches got hard edges and a stretched shape (tried 2026-10-18, back 2026-10-19). Its cost is
+  kept down by stopping it off screen; the heavier drains (live blur behind glass cards, the strip's mask) are gone */
   background:
     radial-gradient(var(--cs) calc(var(--cs) * .9) at 52% 52%,var(--core) 0%,color-mix(in srgb,var(--core) 55%,transparent) 48%,transparent 76%),
     radial-gradient(var(--hs) calc(var(--hs) * .9) at var(--hx) var(--hy),var(--hi),transparent 70%),

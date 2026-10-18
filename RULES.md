@@ -143,8 +143,8 @@ What Kwick feels like, as a touchstone for anything new: does it look like it wa
     on anything large; draw it once and move the layer. Continuous redraws across many cards make Chrome fall behind
     and flash half-drawn or stale cards. Small, throttled exceptions (the heat shimmer on the arc and the number) are fine.
 21b. **Keep the graphics chip's memory light.** No live backdrop blur on cards (only on the small floating dock, top
-    bar and buttons) and no mask around a scrolling strip; no blur on layers that move (the cards' light is soft
-    gradients, not a blurred layer); big moving layers stop altogether off screen so Chrome can let them go; and a card is repainted as
+    bar and buttons) and no mask around a scrolling strip; the cards' blurred light is the one moving blur
+    allowed (its look depends on it; taking it away made the cards visibly harder); big moving layers stop altogether off screen so Chrome can let them go; and a card is repainted as
     it comes into view, because Chrome short of memory can drop a layer's pixels and leave a card empty. A card also
     clips its own moving layers to its rounded shape, since Chrome and iOS can let a moved layer paint outside the
     plain corner clip. Anything drawn in steps (dots filling in) ends in a
