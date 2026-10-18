@@ -63,8 +63,12 @@ know (decisions, preferences, open choices), and push it along.**
   below the dial's centre and shrink on narrow dials.
 - Top bar: hidden fully above the screen (with visibility hidden), so nothing peeks out under iOS's status bar.
 - Pushing from a cloud session: commits are backed up to the non-live branch `cloud`; `main` only on Victor's word.
-- Open: cards sometimes show up empty on the web (Chrome); suspected GPU-memory pressure from every coloured card's
-  large blurred, animated layer. Proposed: drop the layer's animation off-screen; not yet confirmed or built.
+- Empty cards in Chrome (a card showing only its background until tapped; seen on Humidity, 2026-10-18): Chrome
+  dropping a layer's pixels under graphics-memory pressure. Fixed on three sides: the cards' light layer has no blur
+  any more (no visible difference) and is smaller (inset −12%); its drift stops entirely off screen (`.offscreen.pig::
+  before{animation:none}`, restarting 300 px before it scrolls in); and every card is repainted (`.rp`, one frame)
+  as it comes into view and when the app returns to the front, plus a redraw when Chrome restores a lost canvas. Not
+  reproducible on demand, so watch for it; if it returns, look at the Humidity card's full-card canvas next.
 - Loading: the cards draw as soon as the forecast is in; air quality (air and pollen cards keep their skeleton
   meanwhile) and the four-model spread fill in after. Still open: a first-ever visit waits for the location prompt
   (up to 12 s) before it fetches anything.

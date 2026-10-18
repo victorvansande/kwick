@@ -228,7 +228,8 @@ dialog:focus-visible,.sheet:focus-visible{outline:none} /* opening a sheet focus
 /* pigment: saturated rim, deep core */
 .pig{--ink:#fff;--ink-2:rgba(255,255,255,.64);--ink-3:rgba(255,255,255,.34);color:#fff;background:var(--mid,#222);
   box-shadow:inset 0 1px 0 rgba(255,255,255,.18),0 34px 60px -40px color-mix(in srgb,var(--mid,#000) 70%,transparent)}
-.pig::before{content:"";position:absolute;inset:-18%;z-index:-2;filter:blur(18px);
+.pig::before{content:"";position:absolute;inset:-12%;z-index:-2; /* no blur: its gradients are soft already, and a blur
+  made every coloured card a costly graphics surface (one cause of cards showing up empty in Chrome) */
   background:
     radial-gradient(var(--cs) calc(var(--cs) * .9) at 52% 52%,var(--core) 0%,color-mix(in srgb,var(--core) 55%,transparent) 48%,transparent 76%),
     radial-gradient(var(--hs) calc(var(--hs) * .9) at var(--hx) var(--hy),var(--hi),transparent 70%),
@@ -954,6 +955,11 @@ body.net-off .toast{bottom:calc(122px + var(--dock-b))}
 }
 /* cards scrolled well out of view pause their animations (they resume where they were, before they come into view) */
 .offscreen,.offscreen *,.offscreen::before,.offscreen::after,.offscreen *::before,.offscreen *::after{animation-play-state:paused!important}
+/* the cards' drifting light stops altogether off screen, so Chrome can drop its layer and free the memory; it starts
+   again 300 px before the card scrolls in, out of sight */
+.offscreen.pig::before{animation:none}
+/* repaint (app.js): on for one frame as a card comes into view, so Chrome draws it afresh; changes nothing visible */
+.card.rp{outline:1px solid transparent}
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{animation:none!important;transition:none!important}
   .fx i{top:var(--y);transform:rotate(var(--rot))}

@@ -3224,10 +3224,23 @@ function openFromLink() {
 // condensation beads), while it's scrolled out of view. The margin is generous, so everything is already running
 // again by the time it scrolls in, exactly as it was left: nothing changes on screen, the phone just does less work.
 const offscreen = id => { const el = card(id); return !!el && el.classList.contains("offscreen"); };
+/* Chrome, short of graphics memory, can drop a layer's pixels and leave a card showing only its background until
+   something repaints it (a tap did). So a card is repainted, for free, each time it comes into view and when the app
+   comes back to the front: a paint-only class on for one frame makes Chrome draw it afresh. Together with fewer and
+   smaller layers (no blur on the cards' light, its drift stopped off screen) this keeps cards from staying empty. */
+const repaint = el => { el.classList.add("rp"); requestAnimationFrame(() => requestAnimationFrame(() => el.classList.remove("rp"))); };
 if ("IntersectionObserver" in window) {
-  const io = new IntersectionObserver(es => { for (const e of es) e.target.classList.toggle("offscreen", !e.isIntersecting); }, { rootMargin: "300px 0px" });
-  document.querySelectorAll("#board > .card").forEach(el => io.observe(el));
+  const io = new IntersectionObserver(es => {
+    for (const e of es) { e.target.classList.toggle("offscreen", !e.isIntersecting); if (e.isIntersecting) repaint(e.target); }
+  }, { rootMargin: "300px 0px" });
+  const seen = new IntersectionObserver(es => { for (const e of es) if (e.isIntersecting) repaint(e.target); }); // and once more as it really enters the screen
+  document.querySelectorAll("#board > .card").forEach(el => { io.observe(el); seen.observe(el); });
 }
+const repaintVisible = () => document.querySelectorAll("#board > .card:not(.offscreen)").forEach(repaint);
+document.addEventListener("visibilitychange", () => { if (!document.hidden) repaintVisible(); });
+addEventListener("pageshow", repaintVisible);
+// a canvas whose drawing the graphics chip threw away (Chrome tells it so) is drawn again with its card
+document.addEventListener("contextrestored", e => { if (e.target.closest?.(".card") && X.c) renderAll(); }, true);
 
 /* ---------------- wall view ---------------- */
 /* Every card on one screen, just for fun on a spare monitor: the app is laid out at a fixed 2720 px width (and as tall as
