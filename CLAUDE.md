@@ -105,6 +105,10 @@ know (decisions, preferences, open choices), and push it along.**
 - Logo (2026-10-16, option R1): a thermometer of dots in a hairline glass, three white dots and two raspberry up the
   tube, a big raspberry bulb, a fine scale (long/short marks) beside the tube, a little left of centre. Drawn once in
   `tools/icons.mjs`, which renders every icon size and the 12 launch screens (`node tools/icons.mjs`).
+- Pull to refresh (home-screen app, option A): a ring of twelve dots lights up clockwise as you pull; all lit = let go
+  to refresh; while loading a short trail runs round.
+- Main card foot: the two times never break ("6:46 PM" stays whole); on phones up to 360 px the middle line gets its
+  own row under them.
 - Moon: soft terminator (light fades over the last few degrees of sun height), not a hard clip.
 - Saved for later, don't build unasked: a Vestaboard-style split-flap text effect (letters cycling until they land).
 - Night look: ink-black (`--bg:#0e0f12`) with just a touch of each card's colour, no night-blue cast.

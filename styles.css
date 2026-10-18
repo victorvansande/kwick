@@ -384,13 +384,16 @@ html.lq .dock,html.lq .topbar{-webkit-backdrop-filter:url(#lq-lens);backdrop-fil
 .hero.light .arc .awx-wet{stroke:#3f6fe0}
 .hero.light .arc .awx-snow{stroke:#8a96b8}
 .hero.light .arc .awx-cloud{stroke:#6a7090}
-.hero-foot{display:grid;grid-template-columns:1fr minmax(0,auto) 1fr;column-gap:16px;align-items:end;margin-top:4px}
+.hero-foot{display:grid;grid-template-columns:minmax(max-content,1fr) minmax(0,auto) minmax(max-content,1fr);column-gap:16px;align-items:end;margin-top:4px} /* the two times always keep their full width; only the middle line gives way */
 .hero-foot div{display:grid;gap:2px}
-.hero-foot b{font:400 20px/1 var(--f-num);letter-spacing:-.02em}
+.hero-foot b{font:400 20px/1 var(--f-num);letter-spacing:-.02em;white-space:nowrap} /* "6:46 PM" never breaks in two */
 .hero-foot span{font-size:12px;color:var(--ink-2);white-space:nowrap} /* "Sunrise tomorrow" stays whole; the middle line wraps instead */
 .hero-foot .mid{text-align:center;min-width:0;justify-items:center;max-width:15ch;justify-self:center;text-wrap:balance} /* its own short block between the two times, never running into them */
 .hero-foot .mid span{white-space:normal;transition:opacity .4s}.hero-foot .mid span.fade{opacity:0} /* the one-time drag tip fades in and out */
 .hero-foot .r{text-align:right}
+/* on a narrow phone (320 px) the two times keep the row to themselves and the middle line gets its own row under
+   them, rather than being squeezed into a column a word wide */
+@media (max-width:360px){.hero-foot{grid-template-columns:1fr 1fr;row-gap:8px}.hero-foot .mid{grid-row:2;grid-column:1/-1;max-width:none}.hero-foot .r{grid-column:2;grid-row:1}}
 
 /* ---------- rain next hours (glass) ---------- */
 .now-say{font-weight:700;font-size:clamp(20px,2.3vw,26px);letter-spacing:-.03em;line-height:1.1;margin:2px 0 14px;max-width:24ch;text-wrap:balance}
