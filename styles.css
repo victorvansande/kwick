@@ -991,7 +991,7 @@ html:not(.wall) .wall-x{display:none}
 .wall-link{display:block;margin-top:18px;padding:0;font-size:13px;color:var(--ink-2);text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--ink-3)}
 @media (max-width:899px){.wall-link{display:none}}
 html.wall .a-pollen .pgrid{grid-template-columns:repeat(3,minmax(0,1fr))} /* pollen keeps a small corner: two rows of three */
-html.wall .a-pollen.slim .pgrid{display:grid;margin-top:12px}html.wall .a-pollen.slim .foot{display:flex}html.wall .a-pollen.slim #polMore{display:none} /* the wall has the room: zeros shown, not folded */
+html.wall .a-pollen.slim .pfold{grid-template-rows:1fr;visibility:visible}html.wall .a-pollen.slim #polMore{display:none} /* the wall has the room: zeros shown, not folded */
 /* the moon card a touch more compact, so it fits its row */
 html.wall .moon-stats{gap:8px}
 html.wall .a-moon .strip{margin-top:4px}
@@ -1045,9 +1045,13 @@ html.wall .a-moon .strip canvas{height:46px}
   .arc{padding-top:8px}
   .arc-in{max-width:300px;margin:0 auto}
 }
-/* the empty pollen strip opens on request to show each type; on the wide board the six sit in one row */
-.a-pollen.slim:not(.open) .pgrid,.a-pollen.slim:not(.open) .foot{display:none}
-.a-pollen.slim.open .pgrid{margin-top:12px}
+/* the empty pollen strip opens on request to show each type, folding open smoothly as the pollutant panel does
+   (0fr → 1fr); on the wide board the six sit in one row */
+.pfold{display:grid;grid-template-rows:0fr;transition:grid-template-rows .35s ease}
+.pfold>div{min-height:0;overflow:hidden}
+.a-pollen.open .pfold{grid-template-rows:1fr}
+.a-pollen:not(.open) .pfold{visibility:hidden;transition:grid-template-rows .35s ease,visibility 0s .35s}
+.a-pollen.slim .pgrid{margin-top:12px}
 .a-pollen.open .air-more svg{transform:rotate(180deg)}
 @media (min-width:1001px){.a-pollen.slim .pgrid{grid-template-columns:repeat(6,minmax(0,1fr))}}
 /* no rain coming: the sun or moon in the rain grid glows softly, as if the dots give light */

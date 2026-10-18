@@ -2393,7 +2393,7 @@ function renderPollen() {
   if (top.l === 0) {
     const open = store.get("polOpen", false);
     el.classList.toggle("open", open);
-    el.innerHTML = `<div class="ch-row">${head("Pollen and dust", say(top))}<button class="air-more mono" id="polMore" aria-expanded="${open}" aria-controls="polGrid">All ${all.length} at zero<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9.5l6 6 6-6"/></svg></button></div>${grid}${foot}`;
+    el.innerHTML = `<div class="ch-row">${head("Pollen and dust", say(top))}<button class="air-more mono" id="polMore" aria-expanded="${open}" aria-controls="polFold">All ${all.length} at zero<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9.5l6 6 6-6"/></svg></button></div><div class="pfold" id="polFold"><div>${grid}${foot}</div></div>`;
     $("#polMore").onclick = () => { const on = !el.classList.contains("open"); el.classList.toggle("open", on); $("#polMore").setAttribute("aria-expanded", on); store.set("polOpen", on); };
     return;
   }
