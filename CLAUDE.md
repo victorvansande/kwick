@@ -90,6 +90,9 @@ know (decisions, preferences, open choices), and push it along.**
   strip that fits without scrolling leaves no empty row) opens "Chance and amount" (the shared learn sheet, retitled):
   what the chance means (≥0.1 mm, ensemble share, not area or time), the amount (1 mm = 1 l/m²), why both, dots and drops.
 - Main card arc: the arc and its weather bands are clipped at the horizon line (round ends never dip below it).
+- Logo (2026-10-16, option R1): a thermometer of dots in a hairline glass, three white dots and two raspberry up the
+  tube, a big raspberry bulb, a fine scale (long/short marks) beside the tube, a little left of centre. Drawn once in
+  `tools/icons.mjs`, which renders every icon size and the 12 launch screens (`node tools/icons.mjs`).
 - Moon: soft terminator (light fades over the last few degrees of sun height), not a hard clip.
 - Saved for later, don't build unasked: a Vestaboard-style split-flap text effect (letters cycling until they land).
 - Night look: ink-black (`--bg:#0e0f12`) with just a touch of each card's colour, no night-blue cast.
