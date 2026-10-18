@@ -530,6 +530,27 @@ function derive() {
   let hi = H.time.indexOf(c.time.slice(0, 13) + ":00"); if (hi < 0) hi = 0;
   let di = Dy.time.indexOf(c.time.slice(0, 10)); if (di < 0) di = 0;
   X = { c, H, Dy, hi, di, lat: D.latitude, lon: D.longitude, todayKey: Dy.time[di], kind: wmo(c.weather_code)[1], isDay: !!c.is_day };
+  // one answer to "is it raining now": the quarter-hour timeline (as on the precipitation card and the arc), so the
+  // main card, the top bar and the hours' "Now" never say clear while the card below says rain, or the other way round
+  X.nc = nowcast();
+  const w = weatherAt(Date.now(), c.weather_code, c.cloud_cover);
+  X.c = { ...c, weather_code: w.code, precipitation: w.q < 0 ? c.precipitation : w.wet ? X.nc.vals[w.q] : 0 }; X.kind = wmo(w.code)[1];
+}
+/* A rain code without any rain to back it shows the sky instead, by its cloud cover, in the cloud card's own steps
+   (clear to 12%, few clouds to 37%, scattered to 62%, then overcast), so it never says overcast under a clear sky. */
+const dryCode = cloud => cloud == null ? 3 : cloud <= 12 ? 0 : cloud <= 37 ? 1 : cloud <= 62 ? 2 : 3;
+/* Which quarter hour of the timeline holds moment t (-1 outside the next six hours). */
+const quarterAt = t => X.nc ? X.nc.times.findIndex(x => x.valueOf() <= t && t < x.valueOf() + 9e5) : -1;
+/* The weather at moment t, given the hourly forecast's code for it. Within the next six hours whether anything falls
+   comes from the quarter-hour timeline: a dry code with rain in that quarter becomes rain (or snow) as heavy as it is,
+   and a rain code with none becomes the sky its cloud cover gives (dryCode), as an hour's icon does without an
+   amount. q: the quarter (-1 outside the timeline), wet: whether anything falls in it. Thunder stays thunder. */
+function weatherAt(t, code, cloud) {
+  const q = quarterAt(t); if (q < 0) return { code, q, wet: null };
+  const nc = X.nc, r = nc.rate[q], wet = r >= nc.thr, snowy = (nc.snow[q] ?? 0) > 0, falls = code >= 51 && code < 95;
+  if (wet && !falls && code < 95) code = snowy ? (r < 1 ? 71 : r < 4 ? 73 : 75) : r < 2.5 ? 61 : r < 7.6 ? 63 : 65; // the precipitation card's Light/Moderate/Heavy
+  else if (!wet && falls) code = dryCode(cloud);
+  return { code, q, wet };
 }
 
 /* ---------------- one-glance summary ---------------- */
@@ -1115,20 +1136,32 @@ function moonSvg(p, r) {
   return p < .5 ? `M0 ${-r}A${r} ${r} 0 0 1 0 ${r}A${rx} ${r} 0 0 ${sw} 0 ${-r}Z` : `M0 ${r}A${r} ${r} 0 0 1 0 ${-r}A${rx} ${r} 0 0 ${sw} 0 ${r}Z`;
 }
 /* The hourly weather along the arc between a0 and a1, merged into runs: "wet" (rain, drizzle, thunder), "snow",
-   "cloud" (75% cover or more) or "" (fair). f0/f1 are positions on the arc, h the first hour of the run. */
+   "cloud" (75% cover or more) or "" (fair). f0/f1 are positions on the arc, h the start of the run. Within the next
+   six hours each hour is cut at the quarter hours and whether it rains comes from the quarter-hour timeline, the same
+   one the precipitation card and the label under the dot use (weatherAt), so a band never says rain where the card
+   or the label says dry. */
 function arcWeather(a0, a1) {
-  const H = X.H, A = a0.valueOf(), B = a1.valueOf(), segs = [], nc = nowcast();
-  // within the next six hours, whether it rains comes from the quarter-hour timeline (as on the precipitation card)
-  const ncWet = (from, to) => !nc.times.length || to > nc.end ? null : nc.times.some((t, i) => t >= from - 9e5 && t < to && nc.rate[i] >= nc.thr);
+  const H = X.H, A = a0.valueOf(), B = a1.valueOf(), segs = [], nc = X.nc;
+  const add = (type, from, to) => {
+    const last = segs.at(-1);
+    if (last && last.type === type && last.t1 === from) { last.t1 = to; last.f1 = (to - A) / (B - A); }
+    else segs.push({ type, t0: from, t1: to, f0: (from - A) / (B - A), f1: (to - A) / (B - A), h: new Date(from) });
+  };
   H.time.forEach((s, k) => {
     const t = T(s).valueOf(), from = Math.max(t - 18e5, A), to = Math.min(t + 18e5, B);
     if (to <= from) return;
-    const kd = wmo(H.weather_code[k])[1], mm = toMm(H.precipitation[k] ?? 0);
-    const fall = ncWet(from, to) ?? (kd === "snow" || kd === "sleet" || ["rain", "drizzle", "thunder"].includes(kd) || mm >= .1);
-    const type = fall ? (kd === "snow" || kd === "sleet" ? "snow" : "wet") : (H.cloud_cover[k] ?? 0) >= 75 ? "cloud" : "";
-    const last = segs.at(-1);
-    if (last && last.type === type && last.t1 === from) { last.t1 = to; last.f1 = (to - A) / (B - A); }
-    else segs.push({ type, t0: from, t1: to, f0: (from - A) / (B - A), f1: (to - A) / (B - A), h: new Date(Math.max(t, A)) });
+    const kd = wmo(H.weather_code[k])[1], snowK = kd === "snow" || kd === "sleet", cloud = (H.cloud_cover[k] ?? 0) >= 75 ? "cloud" : "";
+    const hourFall = snowK || ["rain", "drizzle", "thunder"].includes(kd) || toMm(H.precipitation[k] ?? 0) >= .1;
+    for (let a = from; a < to;) {
+      const q = quarterAt(a);
+      if (q >= 0) { // inside the quarter-hour timeline
+        const b = Math.min(to, nc.times[q].valueOf() + 9e5);
+        add(nc.rate[q] >= nc.thr ? ((nc.snow[q] ?? 0) > 0 || snowK ? "snow" : "wet") : cloud, a, b); a = b;
+      } else { // outside it: the hour's own forecast, up to where the timeline starts
+        const nx = nc.times.find(x => x.valueOf() > a), b = Math.min(to, nx ? nx.valueOf() : Infinity);
+        add(hourFall ? (snowK ? "snow" : "wet") : cloud, a, b); a = b;
+      }
+    }
   });
   return segs;
 }
@@ -1163,9 +1196,10 @@ function scrubSun(f) {
   $("#arcDone").setAttribute("d", arcPath(0, f));
   $("#arcLeft").setAttribute("d", arcPath(f, 1));
   const dot = $("#sunDot"); dot.setAttribute("transform", `translate(${px} ${py})`); dot.setAttribute("opacity", "1");
-  const h = hourAt(t), [label, kind] = wmo(h.code), v = R(h.temp), box = $("#heroTemp");
-  // the weather on the card follows the hour too: snow, rain, fog, cloud, stars or sun
-  const H = X.H, k = h.k, w = { kind, code: h.code, mm: toMm(H.precipitation[k] ?? 0), cloud: H.cloud_cover[k], windKmh: toMs(H.wind_speed_10m[k] ?? 0) * 3.6, gustKmh: toMs(H.wind_gusts_10m[k] ?? 0) * 3.6, dir: H.wind_direction_10m[k] ?? 0, isDay: !!H.is_day[k] };
+  const h = hourAt(t), wa = weatherAt(t.valueOf(), h.code, X.H.cloud_cover[h.k]), [label, kind] = wmo(wa.code), v = R(h.temp), box = $("#heroTemp");
+  // the weather on the card follows the hour too: snow, rain, fog, cloud, stars or sun (and agrees with the band under
+  // the dot and the precipitation card, weatherAt)
+  const H = X.H, k = h.k, w = { kind, code: wa.code, mm: wa.q < 0 ? toMm(H.precipitation[k] ?? 0) : wa.wet ? toMm(X.nc.vals[wa.q]) * 4 : 0, cloud: H.cloud_cover[k], windKmh: toMs(H.wind_speed_10m[k] ?? 0) * 3.6, gustKmh: toMs(H.wind_gusts_10m[k] ?? 0) * 3.6, dir: H.wind_direction_10m[k] ?? 0, isDay: !!H.is_day[k] };
   const sk = skyKey(w); if (sk !== heroSkyKey && $("#heroSky")) { heroSkyKey = sk; $("#heroSky").innerHTML = heroSky(w); }
   if (box.dataset.v !== String(v)) { box.dataset.v = v; box.innerHTML = dm(String(v), { deg: true }); box.setAttribute("aria-label", `${v} degrees`); }
   $("#heroWhen").textContent = fmtT(t);
@@ -1438,7 +1472,7 @@ function renderHourly() {
     // "Now" shows the conditions right now, exactly as the main card and the top bar do; later columns the hourly forecast
     // an hour's rain or snow icon needs an amount to back it (0.1 mm or more): a drizzle code with less is shown as cloud,
     // so the icon, the drops and the amount always agree ("Now" shows the conditions right now, as the main card does)
-    const hmm = toMm(H.precipitation[k] ?? 0), wc = i ? (H.weather_code[k] >= 51 && H.weather_code[k] < 95 && hmm < .1 ? 3 : H.weather_code[k]) : X.c.weather_code;
+    const hmm = toMm(H.precipitation[k] ?? 0), wc = i ? (H.weather_code[k] >= 51 && H.weather_code[k] < 95 && hmm < .1 ? dryCode(H.cloud_cover[k]) : H.weather_code[k]) : X.c.weather_code;
     const day = i ? !!H.is_day[k] : X.isDay, [, kind] = wmo(wc);
     temps.push(i ? H.temperature_2m[k] : X.c.temperature_2m); foggy.push(kind === "fog");
     const isMid = H.time[k].endsWith("T00:00");
@@ -1764,7 +1798,7 @@ function dayLook(i) {
     else if (toMm(mm) >= .2) code = wet.length ? Math.max(...wet) : Math.max(code ?? 61, 51);
     else {
       const dayKs = ks.filter(k => { const h = +H.time[k].slice(11, 13); return h >= 8 && h < 20; }), use = dayKs.length ? dayKs : ks, n = {};
-      for (const k of use) { const c = H.weather_code[k]; if (c != null) { const s = c >= 51 ? 3 : c; n[s] = (n[s] || 0) + 1; } } // a dry day's stray drizzle hour counts as cloud
+      for (const k of use) { const c = H.weather_code[k]; if (c != null) { const s = c >= 51 ? dryCode(H.cloud_cover[k]) : c; n[s] = (n[s] || 0) + 1; } } // a dry day's stray drizzle hour counts as its sky (dryCode)
       code = +Object.keys(n).sort((a, b) => n[b] - n[a] || b - a)[0]; // the most common; a tie goes to the cloudier
     }
   }
