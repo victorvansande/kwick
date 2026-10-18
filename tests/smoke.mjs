@@ -41,7 +41,11 @@ function forecast(variant) {
   c.time = nowKey; // "now" in the data is now
   if (variant === "cold") Object.assign(c, { temperature_2m: -6, apparent_temperature: -11 });
   if (variant === "humid") Object.assign(c, { relative_humidity_2m: 93, dew_point_2m: 17 });
-  if (variant === "storm") Object.assign(c, { weather_code: 65, precipitation: 3.2, wind_speed_10m: 55, wind_gusts_10m: 88, wind_direction_10m: 250 });
+  if (variant === "storm") {
+    Object.assign(c, { weather_code: 65, precipitation: 3.2, wind_speed_10m: 55, wind_gusts_10m: 88, wind_direction_10m: 250 });
+    // the main card takes rain from the quarter-hour timeline, so the storm rains there too
+    if (j.minutely_15 && j.minutely_15.precipitation) j.minutely_15.precipitation = j.minutely_15.precipitation.map(() => 0.8);
+  }
   if (variant === "fog") Object.assign(c, { weather_code: 45, visibility: 300 });
   return JSON.stringify(j);
 }
@@ -93,8 +97,9 @@ async function run(engine, name, viewport, variant = "normal") {
   });
   const page = await context.newPage(), errors = [];
   page.on("pageerror", e => errors.push(String(e)));
-  // ignored: blocked test requests, and Safari noting it skips the Android-only "interactive-widget" viewport setting
-  page.on("console", m => { if (m.type() === "error" && !/Failed to load resource|Viewport argument key/.test(m.text())) errors.push(m.text()); });
+  // ignored: blocked test requests, Safari noting it skips the Android-only "interactive-widget" viewport setting, and the
+  // browser's harmless note that a ResizeObserver callback was deferred to the next frame
+  page.on("console", m => { if (m.type() === "error" && !/Failed to load resource|Viewport argument key|ResizeObserver loop/.test(m.text())) errors.push(m.text()); });
   await routes(page, variant);
   await page.goto(base);
   await page.waitForSelector("#heroTemp", { timeout: 15000 }).catch(() => {});
