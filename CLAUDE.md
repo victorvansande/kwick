@@ -33,7 +33,7 @@ know (decisions, preferences, open choices), and push it along.**
   phrase; one line per title and subtitle.
 - Be honest about what was and wasn't verified, especially on a phone (the preview runs Chrome, not Safari).
 
-## State and open choices (2026-10-15)
+## State and open choices (2026-10-18)
 
 - Radar: in and around the Benelux, Buienradar for the whole timeline (2 h measured + 2 h forecast, one source so
   nothing jumps at "now"); elsewhere RainViewer, past 2 h. RainViewer can show night-time ghost echoes; ignoring its
@@ -122,3 +122,27 @@ know (decisions, preferences, open choices), and push it along.**
 - Clock: 24-hour by default for everyone (2026-10-18); 12-hour only when picked in settings (`clockChosen`), so an
   old region-based "12" saved with other settings is reset. The precipitation axis marks whole hours under their own
   column ("13:00" / "1pm").
+- One answer per moment (2026-10-18): `weatherAt(t, code, cloud)` decides the weather at any moment in the next six
+  hours from the quarter-hour timeline (`X.nc`, `quarterAt`); "now" (`X.c`), the label and sky while dragging the
+  arc, the arc's bands (cut at quarter hours) and the hours' "Now" gauge all use it. A rain code without rain shows
+  its sky by cloud cover (`dryCode`), never a blanket "Overcast".
+- Folds and corners: everything that folds open does so smoothly (RULES 22a; pollen strip, air panel; on wide screens
+  the air panel widens sideways and, closed, has `contain:size` so it doesn't prop the card up). A way back from a
+  dragged card ("Back to now", "Today") takes the switcher's corner (RULES 12b).
+- Offline pill: "Couldn't update since 13:30" (or "Offline since…") with a visible Retry; Retry fetches again and, if
+  that still fails while online, reloads the page (at most once every two minutes).
+- Sheets: the dimmed backdrop reaches past every edge (a bare light strip showed under sheets on iPhone). Settings:
+  the chosen forecast model is raspberry again (RULES 18). Daylight year: month letters span their real days with a
+  tick where each month begins.
+- New rules from recurring problems (2026-10-18): 1a rain needs rain, 12c same job same behaviour, 12d tappable looks
+  tappable, 20 motion follows data, 20b axes are true, 21b memory light, 25 also check ~1000/1300 px and the wall.
+- Rules audit (2026-10-18), not yet fixed, Victor to answer: clear breaks to fix: at 320 px the wind foot is cut
+  ("km/h"), and the feels-like, humidity ("Dew point 8°"), pressure ("Last 3 hours") feet and the moon tiles ("Full ·
+  Mon", "26 Oct") break mid-phrase; moon says "Back to today" vs "Today"; moon strip labels are 9 px; the summary
+  works per hour (says "drizzle around 14:00" while the card says rain from 14:15); times past midnight don't say
+  "tomorrow" (precipitation card, summary, arc, offline pill); closed 14-day sheet days stay tabbable. Decisions
+  asked: remove the white halo on dot-matrix numbers on coloured cards (`.pig .dm` drop-shadow) and list the
+  approved data-driven lights (clean air, glints, sun glow, bolts) in rule 19; let the visibility ridges drift with
+  the wind; raspberry on the WHO limit line and the How sure app line; the storm flash animates the card background
+  (make it an opacity layer). Also known: ~20 hard-coded colours in app.js drawings; Open-Meteo's hourly amount is
+  for the hour before its label.
