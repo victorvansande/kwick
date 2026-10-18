@@ -131,8 +131,10 @@ What Kwick feels like, as a touchstone for anything new: does it look like it wa
     shown with `display:none`. It sits in a wrapper that grows from `grid-template-rows:0fr` to `1fr` over about
     .35 s (`ease`; a big panel like a whole day may take up to .45 s), with its content clipped (`min-height:0;
     overflow:hidden`) and `visibility:hidden` once closed, so nothing in it can be tabbed to; its arrow turns along.
-    Closing runs the same way back. Being short and only on a tap, this is the one allowed exception to 21a's
-    "transform and opacity only".
+    Closing runs the same way back. A panel that opens beside the content (the pollutants on a wide air card) widens
+    the same way instead: its column grows from `0fr`, its contents fading in once there is room, and the layout never
+    switches between side-by-side and stacked mid-way. Being short and only on a tap, this is the one allowed
+    exception to 21a's "transform and opacity only".
 23. Canvases are sized to the screen's pixels and redrawn only when something changed.
 24. Heavy things (map, moon map, climate history) load only when they are about to be seen.
 

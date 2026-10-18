@@ -702,6 +702,17 @@ html.warned .topbar::before{content:"";width:8px;height:8px;border-radius:50%;ba
 .pol-wrap>div{min-height:0;overflow:hidden;display:grid}
 .air.open .pol-wrap{grid-template-rows:1fr}
 .air:not(.open) .pol-wrap{visibility:hidden;transition:grid-template-rows .35s ease,visibility 0s .35s}
+/* wider than a phone the pollutants open beside the reading: the card keeps its two columns at all times, the second
+   one zero wide while closed, and opening widens it smoothly (0fr → 1.25fr) while the list fades in once there is
+   room; closing runs the same way back. So the panel never jumps below the reading first (rule 22a). */
+@media (min-width:601px){
+  .air,.air:not(.open){grid-template-columns:minmax(0,1fr) minmax(0,0fr);column-gap:0;transition:grid-template-columns .35s ease,column-gap .35s ease}
+  .air.open{grid-template-columns:minmax(0,1fr) minmax(0,1.25fr);column-gap:20px}
+  .air .pol-wrap,.air.open .pol-wrap{grid-template-rows:1fr;min-width:0;overflow:hidden}
+  .air:not(.open) .pol-wrap{transition:visibility 0s .35s}
+  .air .pol-wrap>div{opacity:0;transition:opacity .15s ease}
+  .air.open .pol-wrap>div{opacity:1;transition:opacity .25s ease .15s}
+}
 .pol{gap:8px;align-content:center;padding:14px 16px;border-radius:16px}
 .pol-r{display:grid;grid-template-columns:44px 1fr 62px;gap:12px;align-items:center}
 .pol-r .mono{color:var(--ink)}
