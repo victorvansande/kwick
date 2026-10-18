@@ -2171,7 +2171,7 @@ function renderYear() {
       ${[6, 12, 18].map(hr => `<span class="yr-h tm" data-h="${hr}" style="top:${hr / 24 * 100}%"><i></i>${S.clock === "12" ? `${hr % 12 || 12}${hr < 12 ? "am" : "pm"}` : String(hr).padStart(2, "0")}</span>`).join("")}
       ${(Y.days.dst || []).map(c => { const x = (c.i / Y.days.length * 100); return `<span class="yr-dst${x > 55 ? " r" : ""}${c === Y.days.dst[0] ? " up" : ""}" style="left:${x.toFixed(2)}%"><b class="mono">${dm_(c.key)} · ${wallClock(c.from)} → ${wallClock(c.to)}</b></span>`; }).join("")}
       <span class="yr-today" style="left:${((Y.today + .5) / Y.days.length * 100).toFixed(2)}%"></span><span class="yr-sel" id="yrSel"></span></div>
-    <div class="yr-axis tm">${["J", "F", "M", "A", "M", "J", "J", "A", "S", "O", "N", "D"].map(m => `<span>${m}</span>`).join("")}</div>`;
+    <div class="yr-axis tm" style="grid-template-columns:${Array.from({ length: 12 }, (_, m) => `${new Date(Date.UTC(Y.year, m + 1, 0)).getUTCDate()}fr`).join(" ")}">${["J", "F", "M", "A", "M", "J", "J", "A", "S", "O", "N", "D"].map(m => `<span>${m}</span>`).join("")}</div>`; // each letter spans its own month, as wide as its days, with a tick where it begins, so a day lines up under its month
   drawYear();
   updateYear(Y.today);
   bindYear();

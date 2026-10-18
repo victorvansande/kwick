@@ -213,6 +213,8 @@ dialog:focus-visible,.sheet:focus-visible{outline:none} /* opening a sheet focus
 .yr-dst.r b{left:auto;right:6px}
 .yr-dst.up b{bottom:auto;top:7px}
 .yr-axis{display:grid;grid-template-columns:repeat(12,1fr);margin-top:8px;text-align:center}
+.yr-axis span{position:relative}
+.yr-axis span+span::before{content:"";position:absolute;left:0;top:-4px;width:1px;height:6px;background:currentColor;opacity:.35} /* where each month begins */
 
 /* ---------- card base ---------- */
 .card{position:relative;isolation:isolate;overflow:hidden;border-radius:var(--r-card);padding:18px 20px 20px;--pad-x:20px;min-width:0;min-height:190px;display:flex;flex-direction:column}
