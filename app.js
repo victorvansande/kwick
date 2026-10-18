@@ -44,8 +44,10 @@ const store = {
   get(k, d) { try { const v = localStorage.getItem("isobar:" + k); return v ? JSON.parse(v) : d; } catch { return d; } },
   set(k, v) { try { localStorage.setItem("isobar:" + k, JSON.stringify(v)); } catch {} }
 };
-const hour12 = (() => { try { return new Intl.DateTimeFormat(undefined, { hour: "numeric" }).resolvedOptions().hour12; } catch { return false; } })();
-const S = Object.assign({ temp: "c", wind: "kmh", precip: "mm", clock: hour12 ? "12" : "24", mode: "auto", model: "best_match" }, store.get("settings", {}));
+const S = Object.assign({ temp: "c", wind: "kmh", precip: "mm", clock: "24", mode: "auto", model: "best_match" }, store.get("settings", {}));
+// the clock is 24-hour unless someone picks 12-hour in settings themselves (it used to follow the phone's region, and
+// that choice was saved along with any other setting, so it's only kept when it was picked on purpose)
+if (!store.get("clockChosen", false)) S.clock = "24";
 let place = store.get("place", null);
 let saved = store.get("saved", []);
 let D = null, AQ = null, U = null, TZ = "UTC", OFF = 0, fetchedAt = 0; // U: how sure the forecast is, per day
@@ -1356,15 +1358,13 @@ function renderNow() {
       wet += `<circle class="drip" cx="${cx}" cy="${cyOf(rows - 1 - j)}" r="2.5" fill="var(--rain)" style="--p:${period}s;--w:${(start + j * stepT).toFixed(2)}s"/>`;
   });
   const dots = `${grid}<g filter="url(#bloom)">${wet}</g>${glow ? `<g class="dry-glow">${glow}</g>` : ""}`;
-  // on a 12-hour clock am/pm shows only where it changes, so the labels never run into each other on a phone
-  let lastAp = "";
-  const axis = Array.from({ length: 6 }, (_, k) => {
-    const t = times[k * 4]; if (!t) return "<span></span>";
-    if (!k) return `<span class="tm">Now</span>`;
-    if (S.clock !== "12") return `<span class="tm">${fmtT(t)}</span>`;
-    const [hm, ap = ""] = fmtT(t).toLowerCase().split(/\s+/), lab = ap === lastAp ? hm : hm + ap;
-    lastAp = ap; return `<span class="tm">${lab}</span>`;
-  }).join("");
+  // the axis marks whole hours, each under its own column ("13:00", or "1pm" on a 12-hour clock, short like the
+  // hours card), never one crowding "Now" or running off the right edge (rule 20b)
+  let axis = `<span class="tm" style="left:0">Now</span>`;
+  times.forEach((t, i) => {
+    if (i < 3 || n - i < 3 || new Date(t.valueOf() + OFF * 1000).getUTCMinutes() !== 0) return;
+    axis += `<span class="tm" style="left:${(i / n * 100).toFixed(2)}%">${S.clock === "12" ? fmtH(t) : fmtT(t)}</span>`;
+  });
   el.innerHTML = `<div class="ch-row">${head("Precipitation", sub)}${total > 0 ? `<span class="mono">${totalTxt}</span>` : ""}</div>
     <div class="now-say">${esc(say)}</div>
     <div class="now-chart"><svg viewBox="0 0 ${n * sp} ${rows * sp}" role="img" aria-label="Precipitation per 15 minutes"><defs><filter id="bloom" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="1.3" result="b"/><feComponentTransfer in="b" result="s"><feFuncA type="linear" slope=".55"/></feComponentTransfer><feMerge><feMergeNode in="s"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>${dots}${tIdx.length ? `<g class="strike" data-thun="${tIdx.join(",")}" data-n="${n}" data-rows="${rows}"></g>` : ""}</svg></div>
@@ -3204,7 +3204,7 @@ function setSetting(k, v) {
   S[k] = v;
   // units and models come from the server: offline that only works if this combination was kept before
   if (refetch && !navigator.onLine && place && !forecasts.get(cacheKey(place))) { S[k] = old; renderSettings(); return toast("That needs a connection. Try again once you're online."); }
-  store.set("settings", S); renderSettings();
+  store.set("settings", S); if (k === "clock") store.set("clockChosen", true); renderSettings();
   if (refetch) load(place);
   else if (D) renderAll(); else applyMode();
 }

@@ -119,3 +119,6 @@ know (decisions, preferences, open choices), and push it along.**
   offered, not decided. Other ideas offered, not decided: real lightning strikes on the radar (Blitzortung, terms to
   check), fixing the empty-cards-in-Chrome bug first, a proper minus sign ("−4°") in the 48-hour strip.
 - Cloud cover card: at least six rows of dots; on a short card the dots sit closer (10–15 px), phones unchanged.
+- Clock: 24-hour by default for everyone (2026-10-18); 12-hour only when picked in settings (`clockChosen`), so an
+  old region-based "12" saved with other settings is reset. The precipitation axis marks whole hours under their own
+  column ("13:00" / "1pm").
