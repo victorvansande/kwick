@@ -939,13 +939,16 @@ body.net-off .toast{bottom:calc(122px + var(--dock-b))}
 /* pull to refresh (home-screen app only) */
 .ptr{position:fixed;left:50%;top:calc(env(safe-area-inset-top,0px) + 10px);z-index:1001;width:30px;height:30px;margin-left:-15px;border-radius:50%;display:grid;place-items:center;color:#fff;
   opacity:0;transform:translateY(-56px);pointer-events:none}
-.ptr svg{width:16px;height:16px;transform:rotate(-90deg);overflow:visible}
-.ptr circle{fill:none;stroke:#fff;stroke-width:2;stroke-linecap:round;stroke-dasharray:0 100}
-.ptr circle.track{stroke:rgba(255,255,255,.18);stroke-dasharray:none}
+.ptr svg{width:18px;height:18px;overflow:visible}
+/* a ring of twelve dots: they light up clockwise as you pull (all lit: letting go refreshes); while it loads a short
+   trail of light runs round the ring */
+.ptr .pd{fill:#fff;opacity:.22;transition:opacity .12s}
+.ptr .pd.on{opacity:1}
+.ptr.ready svg{transform:scale(1.08);transition:transform .16s cubic-bezier(.2,.8,.2,1)}
+.ptr.go .pd{opacity:.22;animation:ptrrun .96s linear calc(var(--i) * .08s - .96s) infinite}
+@keyframes ptrrun{0%{opacity:1}8%{opacity:.62}16%{opacity:.36}24%,100%{opacity:.22}}
+@media (prefers-reduced-motion:reduce){.ptr.go .pd{opacity:.6}}
 .ptr.snap{transition:transform .3s cubic-bezier(.2,.8,.2,1),opacity .3s}
-.ptr.go svg{animation:ptrspin .8s linear infinite}
-.ptr.go circle:not(.track){stroke-dasharray:26 100!important}
-@keyframes ptrspin{from{transform:rotate(-90deg)}to{transform:rotate(270deg)}}
 
 @media (max-width:600px){
   .app{padding-left:14px;padding-right:14px}

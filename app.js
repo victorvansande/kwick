@@ -3433,11 +3433,12 @@ async function followMe() {
 
 /* Pull to refresh in the home-screen app (Safari has its own). */
 if (document.documentElement.classList.contains("standalone")) {
-  const el = $("#ptr"), arc = $("#ptrArc"), need = 110;
+  const el = $("#ptr"), dots = [...el.querySelectorAll(".pd")], need = 110;
   let y0 = null, pull = 0;
-  // the ring fills as you pull; full means letting go will refresh
-  const set = p => { el.style.transform = `translateY(${-50 + Math.min(p, 170) * .45}px)`; el.style.opacity = Math.min(1, p / 60); arc.style.strokeDasharray = `${Math.min(100, p / need * 100).toFixed(1)} 100`; };
-  const reset = () => { el.classList.add("snap"); el.style.transform = ""; el.style.opacity = ""; setTimeout(() => { el.classList.remove("snap", "go"); arc.style.strokeDasharray = ""; }, 320); };
+  // the dots light up clockwise as you pull; all twelve lit means letting go will refresh
+  const lightTo = n => dots.forEach((d, i) => d.classList.toggle("on", i < n));
+  const set = p => { el.style.transform = `translateY(${-50 + Math.min(p, 170) * .45}px)`; el.style.opacity = Math.min(1, p / 60); const n = Math.min(12, Math.floor(p / need * 12)); lightTo(n); el.classList.toggle("ready", n === 12); };
+  const reset = () => { el.classList.add("snap"); el.style.transform = ""; el.style.opacity = ""; setTimeout(() => { el.classList.remove("snap", "go", "ready"); lightTo(0); }, 320); };
   addEventListener("touchstart", e => {
     pull = 0;
     y0 = scrollY <= 0 && e.touches.length === 1 && !el.classList.contains("go") && !e.target.closest(".leaflet-container,dialog,#arcIn,[role=slider]") ? e.touches[0].clientY : null;
@@ -3450,7 +3451,7 @@ if (document.documentElement.classList.contains("standalone")) {
   addEventListener("touchend", async () => {
     if (y0 == null) return; y0 = null;
     if (pull < need || !place) return reset();
-    el.classList.add("snap", "go"); el.style.transform = "translateY(6px)";
+    el.classList.add("snap", "go"); el.classList.remove("ready"); lightTo(0); el.style.transform = "translateY(6px)";
     await load(place); reset();
   });
 }
