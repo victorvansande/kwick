@@ -173,7 +173,7 @@ dialog:focus-visible,.sheet:focus-visible{outline:none} /* opening a sheet focus
   .board .big{font-size:calc(48px * var(--k,1))}
   .board .compass{width:min(100%,calc(200px * var(--k,1)))}
   .board .compass-c .dm{height:calc(42px * var(--k,1))}
-  .board .gauge-v .dm{height:calc(40px * var(--k,1))}
+  .board .gauge-v .dm{height:calc(36px * var(--k,1))}
   .board .dial{width:min(100%,calc(190px * var(--k,1)))}
   .board .dial-v .dm{height:min(calc(27px * var(--k,1)),15cqw)}
   .board .spark svg{height:calc(42px * var(--k,1))}
@@ -683,7 +683,7 @@ html.warned .topbar::before{content:"";width:8px;height:8px;border-radius:50%;ba
 @keyframes mote{0%{opacity:0;transform:translate(0,0)}15%,85%{opacity:var(--o)}100%{opacity:0;transform:translate(var(--dx),var(--dy))}}
 .gauge svg{width:100%;height:auto;display:block;overflow:visible}
 .gauge-v{position:absolute;left:0;right:0;bottom:0;text-align:center}
-.gauge-v .dm{height:40px;margin:0 auto 4px}
+.gauge-v .dm{height:36px;margin:0 auto 4px} /* a touch smaller, so the digits sit clear inside the arc */
 
 .a-humid .num{margin-bottom:auto}
 
