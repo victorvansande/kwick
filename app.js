@@ -2054,7 +2054,8 @@ function updateMoon(off) {
       if (!nextNew && prev > .8 && p < .2) nextNew = t;
       prev = p;
     }
-    const none = day === 0 ? "None today" : "None";
+    // no rise or set on the day shown: just "None" (the tiles are for that day, and "None today" didn't fit a tile)
+    const none = "None";
     // the next full and new moon: the weekday goes with the short label ("Full · Mon"), so the date stays whole on one line
     const dm = d => d ? new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", timeZone: TZ }).format(d) : "–", wkd = d => d ? " · " + new Intl.DateTimeFormat("en-GB", { weekday: "short", timeZone: TZ }).format(d) : "";
     $("#moonKv").innerHTML = tile("Moonrise", mt.rise ? fmtTu(mt.rise) : none) + tile("Moonset", mt.set ? fmtTu(mt.set) : none) + tile("Full" + wkd(nextFull), dm(nextFull)) + tile("New" + wkd(nextNew), dm(nextNew));

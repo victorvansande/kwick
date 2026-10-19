@@ -109,6 +109,7 @@ know (decisions, preferences, open choices), and push it along.**
   to refresh; while loading a short trail runs round.
 - Main card foot: the two times never break ("6:46 PM" stays whole); on phones up to 360 px the middle line gets its
   own row under them.
+- Moon tiles: no rise or set on the day shown reads just "None" ("None today" ran into the tile's edge).
 - Moon: soft terminator (light fades over the last few degrees of sun height), not a hard clip.
 - Saved for later, don't build unasked: a Vestaboard-style split-flap text effect (letters cycling until they land).
 - Night look: ink-black (`--bg:#0e0f12`) with just a touch of each card's colour, no night-blue cast.
